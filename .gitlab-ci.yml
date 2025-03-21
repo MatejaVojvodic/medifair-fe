@@ -1,0 +1,21 @@
+image: node:18  # Use Node.js 18 (or latest stable)
+
+stages:
+  - build
+
+cache:
+  paths:
+    - node_modules/
+
+before_script:
+  - echo "Installing dependencies..."
+  - npm install
+
+build:
+  stage: build
+  script:
+    - echo "Building frontend..."
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
