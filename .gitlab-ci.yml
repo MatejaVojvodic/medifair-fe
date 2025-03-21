@@ -1,4 +1,4 @@
-image: node:18  # Use Node.js 18 (or latest stable)
+image: node:18
 
 stages:
   - build
@@ -8,14 +8,16 @@ cache:
     - node_modules/
 
 before_script:
+  - cd medifair-frontend  
   - echo "Installing dependencies..."
   - npm install
 
 build:
   stage: build
   script:
+    #- cd medifar-frontend   Add this if needed
     - echo "Building frontend..."
     - npm run build
   artifacts:
     paths:
-      - dist/
+      - frontend/dist/
