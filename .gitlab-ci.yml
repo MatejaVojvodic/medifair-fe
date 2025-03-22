@@ -15,7 +15,6 @@ before_script:
 build:
   stage: build
   script:
-    #- cd medifar-frontend   Add this if needed
     - echo "Building frontend..."
     - npm run build
   artifacts:
