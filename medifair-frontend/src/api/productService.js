@@ -25,3 +25,9 @@ export const updateProduct = async (id, product) => {
 export const deleteProduct = async (id) => {
   await axios.delete(`${API_URL}/${id}`);
 };
+
+
+export const filterProducts = async (filters) => {
+  const response = await axios.get(`${API_URL}/filter`, { params: filters });
+  return response.data;
+};
