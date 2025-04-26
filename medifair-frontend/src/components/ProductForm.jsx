@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "../assets/styles/product.css";
 
 const ProductForm = ({ onSubmit, initialData = {} }) => {
   const [product, setProduct] = useState({

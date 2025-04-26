@@ -2,6 +2,7 @@ import ProductList from "../components/ProductList";
 import ProductFilter from "../components/ProductFilter.jsx";
 import Navbar from "../components/Navbar.jsx";
 import { Link } from "react-router-dom";
+import "../assets/styles/product.css";
 
 const Home = () => {
   return (

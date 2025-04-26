@@ -17,6 +17,7 @@ import AppRoutes from "./routes/AppRoutes";
 import { ProductProvider } from "./context/ProductContext";
 import { AuthProvider } from "./context/AuthContext";
 import "./assets/styles/auth.css"; // Import the CSS
+import "./assets/styles/product.css";
 
 function App() {
   return (

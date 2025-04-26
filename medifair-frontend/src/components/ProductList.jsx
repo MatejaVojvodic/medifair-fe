@@ -1,6 +1,7 @@
 import { useContext } from "react";
 import { ProductContext } from "../context/ProductContext";
 import { useNavigate } from "react-router-dom";
+import "../assets/styles/product.css";
 
 const ProductList = () => {
   const { products, handleDeleteProduct } = useContext(ProductContext);

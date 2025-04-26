@@ -1,5 +1,6 @@
 import { useContext } from "react";
 import { ProductContext } from "../context/ProductContext";
+import "../assets/styles/product.css";
 
 const ProductFilter = () => {
   const { filters, setFilters, applyFilters } = useContext(ProductContext);

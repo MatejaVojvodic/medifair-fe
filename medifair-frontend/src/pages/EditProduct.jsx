@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ProductForm from "../components/ProductForm";
 import { getProductById, updateProduct } from "../api/productService";
+import "../assets/styles/product.css";
 
 const EditProduct = () => {
   const { id } = useParams();
