@@ -1,7 +1,7 @@
 // src/pages/auth/Login.jsx
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
-import { login } from "../api/authservice";
+import { login } from "../api/authService";
 import { useAuth } from "../context/AuthContext";
 import "../assets/styles/auth.css";
 

@@ -1,7 +1,7 @@
 // src/pages/Register.jsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { register } from "../api/authservice"; // Make sure this import path is correct
+import { register } from "../api/authService"; // Make sure this import path is correct
 import "../assets/styles/auth.css"; // Make sure this path is correct
 
 const Register = () => {

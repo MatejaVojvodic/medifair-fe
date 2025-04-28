@@ -1,6 +1,6 @@
 // src/context/AuthContext.jsx
 import { createContext, useState, useEffect, useContext } from "react";
-import { isAuthenticated, logout, setupAuthInterceptor } from "../api/authservice"; // Fixed casing
+import { isAuthenticated, logout, setupAuthInterceptor } from "../api/authService"; // Fixed casing
 
 const AuthContext = createContext();
 
