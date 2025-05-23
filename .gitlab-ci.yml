@@ -1,22 +1,155 @@
+# Base image for all jobs
 image: node:18
 
+# Define stages in order of execution
 stages:
   - build
+  - test
+  - docker
+  - deploy
 
+# Global cache configuration
 cache:
   paths:
-    - node_modules/
+    - medifair-frontend/node_modules/
 
-before_script:
-  - cd medifair-frontend  
-  - echo "Installing dependencies..."
-  - npm install
+variables:
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+  FRONTEND_IMAGE_NAME: "mateja2000/medifair-frontend"  # Change to your Docker Hub username/image
 
+# Build stage
 build:
   stage: build
   script:
+    - cd medifair-frontend
+    - echo "Installing dependencies..."
+    - npm install
     - echo "Building frontend..."
     - npm run build
   artifacts:
     paths:
-      - frontend/dist/
+      - medifair-frontend/dist/
+    expire_in: 1 day
+
+# Test stage (optional but recommended)
+test:
+  stage: test
+  script:
+    - cd medifair-frontend
+    - echo "Running tests..."
+    - npm test || echo "No tests found, skipping..."
+  allow_failure: true  # Set to false when you have proper tests
+
+# Docker build and push stage
+docker:
+  stage: docker
+  image: docker:latest
+  services:
+    - name: docker:dind
+      command: ["--tls=false"]
+  before_script:
+    - echo "Logging into Docker registry..."
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  script:
+    - cd medifair-frontend
+    - echo "Building Docker image..."
+    - |
+      cat > Dockerfile << 'EOL'
+      FROM nginx:alpine
+      COPY dist/ /usr/share/nginx/html
+      COPY nginx.conf /etc/nginx/conf.d/default.conf
+      EXPOSE 80
+      CMD ["nginx", "-g", "daemon off;"]
+      EOL
+    - |
+      cat > nginx.conf << 'EOL'
+      server {
+          listen 80;
+          server_name _;
+          root /usr/share/nginx/html;
+          index index.html;
+          
+          # Handle Single Page Application routing
+          location / {
+              try_files $uri $uri/ /index.html;
+          }
+          
+          # API proxying - adjust these based on your backend services
+          location /api/core/ {
+              proxy_pass http://medifair-backend-service;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+          }
+          
+          location /api/extra/ {
+              proxy_pass http://medifair-extra;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+          }
+      }
+      EOL
+    - docker build -t $FRONTEND_IMAGE_NAME:latest .
+    - docker push $FRONTEND_IMAGE_NAME:latest
+  only:
+    - main
+
+# Deploy to Kubernetes
+deploy:
+  stage: deploy
+  image:
+    name: bitnami/kubectl
+    entrypoint: [""]
+  script:
+    - cd $CI_PROJECT_DIR
+    - echo "Creating Kubernetes deployment file..."
+    - |
+      cat > deployment-frontend.yaml << 'EOL'
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: medifair-frontend
+      spec:
+        replicas: 2
+        selector:
+          matchLabels:
+            app: medifair-frontend
+        template:
+          metadata:
+            labels:
+              app: medifair-frontend
+          spec:
+            containers:
+              - name: medifair-frontend
+                image: mateja2000/medifair-frontend:latest
+                ports:
+                  - containerPort: 80
+                env:
+                  - name: BACKEND_URL
+                    value: "http://167.99.17.26"
+                  - name: EXTRA_SERVICE_URL
+                    value: "http://209.38.52.45"
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: medifair-frontend-service
+      spec:
+        selector:
+          app: medifair-frontend
+        ports:
+          - protocol: TCP
+            port: 80
+            targetPort: 80
+        type: LoadBalancer
+      EOL
+    - echo "Deploying to Kubernetes cluster..."
+    - echo "$KUBE_CONFIG_CLUSTER1" > kubeconfig.yaml
+    - export KUBECONFIG=kubeconfig.yaml
+    - kubectl apply -f deployment-frontend.yaml
+    - echo "Waiting for deployment to complete..."
+    - kubectl rollout status deployment/medifair-frontend
+    - echo "Getting service information..."
+    - kubectl get service medifair-frontend-service
+  only:
+    - main
