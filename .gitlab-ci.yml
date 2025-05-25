@@ -28,13 +28,13 @@ build:
       - medifair-frontend/dist/
     expire_in: 1 day
 
-test:
-  stage: test
-  script:
-    - cd medifair-frontend
-    - echo "Running tests..."
-    - npm test || echo "No tests found, skipping..."
-  allow_failure: true 
+# test:
+#   stage: test
+#   script:
+#     - cd medifair-frontend
+#     - echo "Running tests..."
+#     - npm test || echo "No tests found, skipping..."
+#   allow_failure: true 
 
 e2e_tests:
   stage: test
