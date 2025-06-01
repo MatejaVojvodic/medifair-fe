@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import "../assets/styles/product.css"
 
 const ProductForm = ({ onSubmit, initialData = null }) => {
@@ -7,9 +7,21 @@ const ProductForm = ({ onSubmit, initialData = null }) => {
     description: initialData?.description || "",
     price: initialData?.price || "",
     quantity: initialData?.quantity || "",
+    imageUrl: initialData?.imageUrl || "",
+    imageUrls: initialData?.imageUrls || [],
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState("")
+
+  // Set preview URL from initial data
+  useEffect(() => {
+    if (initialData?.imageUrl) {
+      setPreviewUrl(initialData.imageUrl)
+    } else if (initialData?.imageUrls && initialData.imageUrls.length > 0) {
+      setPreviewUrl(initialData.imageUrls[0])
+    }
+  }, [initialData])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -17,6 +29,11 @@ const ProductForm = ({ onSubmit, initialData = null }) => {
       ...formData,
       [name]: value,
     })
+
+    // Update preview for image URL
+    if (name === "imageUrl") {
+      setPreviewUrl(value)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -24,10 +41,28 @@ const ProductForm = ({ onSubmit, initialData = null }) => {
     setIsSubmitting(true)
 
     try {
+      // Prepare image URLs array
+      const imageUrlsArray = []
+
+      // If imageUrl is provided, add it to the array
+      if (formData.imageUrl && formData.imageUrl.trim() !== "") {
+        imageUrlsArray.push(formData.imageUrl.trim())
+      }
+
+      // Add any existing imageUrls that aren't the same as imageUrl
+      if (Array.isArray(formData.imageUrls)) {
+        formData.imageUrls.forEach((url) => {
+          if (url !== formData.imageUrl && url.trim() !== "") {
+            imageUrlsArray.push(url)
+          }
+        })
+      }
+
       const productData = {
         ...formData,
         price: Number.parseFloat(formData.price),
         quantity: Number.parseInt(formData.quantity),
+        imageUrls: imageUrlsArray,
       }
 
       await onSubmit(productData)
@@ -36,6 +71,10 @@ const ProductForm = ({ onSubmit, initialData = null }) => {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const isValidImageUrl = (url) => {
+    return url && url.trim() !== ""
   }
 
   return (
@@ -67,6 +106,36 @@ const ProductForm = ({ onSubmit, initialData = null }) => {
             placeholder="Enter product description"
             rows="4"
           />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="imageUrl">Image URL</label>
+          <input
+            type="url"
+            id="imageUrl"
+            name="imageUrl"
+            value={formData.imageUrl}
+            onChange={handleChange}
+            className="form-control"
+            placeholder="https://example.com/image.jpg"
+          />
+          {isValidImageUrl(previewUrl) && (
+            <div className="image-preview">
+              <p>Image Preview:</p>
+              <img
+                src={previewUrl || "/placeholder.svg"}
+                alt="Product preview"
+                className="preview-img"
+                onError={(e) => {
+                  console.error("Image failed to load:", previewUrl)
+                  e.target.src = "https://via.placeholder.com/200x150?text=Image+Not+Found"
+                }}
+              />
+            </div>
+          )}
+          <small className="form-text text-muted">
+            For best results, use image URLs from Unsplash or other image hosting services.
+          </small>
         </div>
 
         <div className="form-row">

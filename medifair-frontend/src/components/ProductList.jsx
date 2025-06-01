@@ -26,6 +26,16 @@ const ProductList = () => {
     return false
   }
 
+  const getProductImage = (product) => {
+    if (product.imageUrls && product.imageUrls.length > 0) {
+      return product.imageUrls[0]
+    }
+    if (product.imageUrl) {
+      return product.imageUrl
+    }
+    return "https://via.placeholder.com/80x80?text=No+Image"
+  }
+
   if (products.length === 0) {
     return (
       <div className="empty-products">
@@ -42,25 +52,21 @@ const ProductList = () => {
         {products.map((product) => (
           <div key={product.id} className="product-item">
             <div className="product-image">
-              {product.imageUrl ? (
-                <img
-                  src={product.imageUrl || "/placeholder.svg"}
-                  alt={product.name}
-                  className="product-img"
-                  onError={(e) => {
-                    e.target.src = "/placeholder.svg?height=150&width=150"
-                  }}
-                />
-              ) : (
-                <div className="product-img-placeholder">📦</div>
-              )}
+              <img
+                src={getProductImage(product) || "/placeholder.svg"}
+                alt={product.name}
+                className="product-img"
+                onError={(e) => {
+                  e.target.src = "https://via.placeholder.com/80x80?text=No+Image"
+                }}
+              />
             </div>
 
             <div className="product-info">
               <h4 className="product-name" onClick={() => navigate(`/products/${product.id}`)}>
                 {product.name}
               </h4>
-              <p className="product-price">${product.price}</p>
+              <p className="product-price">${product.price.toFixed(2)}</p>
               <p className="product-quantity">Stock: {product.quantity}</p>
               <p className="product-description">{product.description}</p>
             </div>

@@ -9,27 +9,72 @@ const ProductDetail = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const [product, setProduct] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
 
   useEffect(() => {
+    setIsLoading(true)
     getProductById(id)
       .then((data) => {
         console.log("Product Detail Data:", data)
         setProduct(data)
+        setIsLoading(false)
       })
       .catch((error) => {
         console.error("Error fetching product:", error)
+        setError("Failed to load product details")
+        setIsLoading(false)
       })
   }, [id])
 
-  if (!product)
+  const getProductImage = () => {
+    if (product?.imageUrls && product.imageUrls.length > 0) {
+      return product.imageUrls[0]
+    }
+    if (product?.imageUrl) {
+      return product.imageUrl
+    }
+    return "https://via.placeholder.com/300x300?text=No+Image"
+  }
+
+  if (isLoading) {
     return (
       <div>
         <Navbar />
         <div className="container">
-          <p>Loading...</p>
+          <div className="loading-spinner">Loading product details...</div>
         </div>
       </div>
     )
+  }
+
+  if (error) {
+    return (
+      <div>
+        <Navbar />
+        <div className="container">
+          <div className="error-message">{error}</div>
+          <button onClick={() => navigate("/")} className="btn btn-primary">
+            Back to Products
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!product) {
+    return (
+      <div>
+        <Navbar />
+        <div className="container">
+          <div className="error-message">Product not found</div>
+          <button onClick={() => navigate("/")} className="btn btn-primary">
+            Back to Products
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -40,20 +85,33 @@ const ProductDetail = () => {
             <h1 className="product-detail-title">{product.name}</h1>
           </div>
 
-          <div className="product-detail-info">
-            <div className="product-detail-section">
-              <div className="product-detail-label">Description</div>
-              <div className="product-detail-value">{product.description}</div>
+          <div className="product-detail-content">
+            <div className="product-detail-image">
+              <img
+                src={getProductImage() || "/placeholder.svg"}
+                alt={product.name}
+                className="detail-image"
+                onError={(e) => {
+                  e.target.src = "https://via.placeholder.com/300x300?text=No+Image"
+                }}
+              />
             </div>
 
-            <div className="product-detail-section">
-              <div className="product-detail-label">Price</div>
-              <div className="product-detail-value">${product.price}</div>
-            </div>
+            <div className="product-detail-info">
+              <div className="product-detail-section">
+                <div className="product-detail-label">Description</div>
+                <div className="product-detail-value">{product.description}</div>
+              </div>
 
-            <div className="product-detail-section">
-              <div className="product-detail-label">Available Quantity</div>
-              <div className="product-detail-value">{product.quantity}</div>
+              <div className="product-detail-section">
+                <div className="product-detail-label">Price</div>
+                <div className="product-detail-value">${product.price.toFixed(2)}</div>
+              </div>
+
+              <div className="product-detail-section">
+                <div className="product-detail-label">Available Quantity</div>
+                <div className="product-detail-value">{product.quantity}</div>
+              </div>
             </div>
           </div>
 

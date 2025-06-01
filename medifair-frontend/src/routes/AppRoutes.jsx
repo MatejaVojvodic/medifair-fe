@@ -71,6 +71,7 @@ import Cart from "../pages/Cart"
 import Checkout from "../pages/Checkout"
 import OrderSuccess from "../pages/OrderSuccess"
 import Orders from "../pages/Orders"
+import Profile from "../pages/Profile"
 
 // Protected route component
 const ProtectedRoute = ({ children }) => {
@@ -131,7 +132,6 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Cart and Order routes - temporarily commented out */}
       <Route
         path="/cart"
         element={
@@ -164,6 +164,15 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Orders />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
           </ProtectedRoute>
         }
       />

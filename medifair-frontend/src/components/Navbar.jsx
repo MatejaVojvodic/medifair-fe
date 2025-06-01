@@ -42,8 +42,11 @@ const Navbar = () => {
             <Link to="/orders" className="navbar-item">
               My Orders
             </Link>
+            <Link to="/profile" className="navbar-item">
+              Profile
+            </Link>
             <span className="navbar-item user-info">
-              Welcome, {username} {checkIsAdmin() ? "(Admin)" : "(User)"}
+              {username}
             </span>
             <button onClick={logout} className="navbar-item logout-btn">
               Logout

@@ -3,17 +3,26 @@ import ProductFilter from "../components/ProductFilter.jsx"
 import Navbar from "../components/Navbar.jsx"
 import { useContext } from "react"
 import { ProductContext } from "../context/ProductContext"
+import { useAuth } from "../context/AuthContext"
 import { Link } from "react-router-dom"
 import "../assets/styles/product.css"
 
 const Home = () => {
   const { error, isLoading } = useContext(ProductContext)
+  const { isAdmin } = useAuth()
+
+  const checkIsAdmin = () => {
+    if (typeof isAdmin === "function") {
+      return isAdmin()
+    }
+    return false
+  }
 
   return (
     <div>
       <Navbar />
       <div className="container">
-        <h1>Product Management</h1>
+        {checkIsAdmin() && (<h1>Product Management</h1>)}
 
         {error && (
           <div className="error-message">
@@ -24,9 +33,11 @@ const Home = () => {
 
         {isLoading && <div className="loading-spinner">Loading products...</div>}
 
-        <Link to="/create" className="btn btn-primary" style={{ marginBottom: "1rem" }}>
-          Create Product
-        </Link>
+        {checkIsAdmin() && (
+          <Link to="/create" className="btn btn-primary" style={{ marginBottom: "1rem" }}>
+            Create Product
+          </Link>
+        )}
 
         <ProductFilter />
         <ProductList />
@@ -36,3 +47,4 @@ const Home = () => {
 }
 
 export default Home
+

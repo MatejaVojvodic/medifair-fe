@@ -1,3 +1,6 @@
+/* src/assets/styles/product.css */
+
+/* ===== Global Styles ===== */
 :root {
   --primary-color: #305a72;
   --primary-hover: #254a5c;
@@ -22,12 +25,49 @@ body {
   background-color: #f5f7fa;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
+/* Main app container - centers everything */
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  background-color: white;
+}
+
+/* Center the main container */
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 1rem;
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Center content for specific pages */
+.centered-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  min-height: 60vh;
+}
+
+/* Page wrapper for consistent centering */
+.page-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 80px);
+  background-color: #f5f7fa;
 }
 
 h1,
@@ -41,6 +81,15 @@ h6 {
   font-weight: 500;
   line-height: 1.2;
   color: var(--dark-color);
+  text-align: center;
+}
+
+/* Center main headings */
+.container > h1,
+.container > h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: var(--primary-color);
 }
 
 a {
@@ -95,7 +144,11 @@ textarea:focus {
   padding: 1rem 2rem;
   background-color: #fff;
   box-shadow: var(--box-shadow);
-  margin-bottom: 2rem;
+  margin-bottom: 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
 }
 
 .navbar-brand a {
@@ -214,6 +267,14 @@ textarea:focus {
   border-radius: 0.3rem;
 }
 
+/* Center button groups */
+.btn-group {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
 /* ===== Error and Loading Messages ===== */
 .error-message {
   background-color: #f8d7da;
@@ -222,6 +283,7 @@ textarea:focus {
   border-radius: var(--border-radius);
   border: 1px solid #f5c6cb;
   margin-bottom: 1rem;
+  text-align: center;
 }
 
 .success-message {
@@ -231,6 +293,7 @@ textarea:focus {
   border-radius: var(--border-radius);
   border: 1px solid #c3e6cb;
   margin-bottom: 1rem;
+  text-align: center;
 }
 
 .loading-spinner {
@@ -254,7 +317,8 @@ textarea:focus {
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
-  margin-bottom: 1rem;
+  margin: 0 auto 1rem auto;
+  max-width: 100%;
 }
 
 .card-header {
@@ -262,6 +326,7 @@ textarea:focus {
   margin-bottom: 0;
   background-color: rgba(0, 0, 0, 0.03);
   border-bottom: 1px solid var(--border-color);
+  text-align: center;
 }
 
 .card-body {
@@ -271,12 +336,14 @@ textarea:focus {
 
 .card-title {
   margin-bottom: 0.75rem;
+  text-align: center;
 }
 
 .card-footer {
   padding: 0.75rem 1.25rem;
   background-color: rgba(0, 0, 0, 0.03);
   border-top: 1px solid var(--border-color);
+  text-align: center;
 }
 
 /* ===== Form Styles ===== */
@@ -327,7 +394,29 @@ textarea:focus {
   max-width: 100%;
 }
 
+/* Center forms */
+.product-form-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem;
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
 /* ===== Product List Styles ===== */
+.products-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
 .product-list {
   list-style: none;
   padding: 0;
@@ -335,21 +424,47 @@ textarea:focus {
 }
 
 .product-item {
-  background-color: #fff;
+  display: grid;
+  grid-template-columns: 100px 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.5rem;
+  background-color: white;
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
-  padding: 1rem;
-  margin-bottom: 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: transform 0.3s ease;
   border-left: 4px solid var(--secondary-color);
+  margin-bottom: 1rem;
+  transition: transform 0.3s ease;
+  max-width: 100%;
 }
 
 .product-item:hover {
   transform: translateY(-3px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.product-image {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  background-color: var(--light-color);
+  border: 1px solid var(--border-color);
+}
+
+.product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--border-radius);
+}
+
+.product-img-placeholder {
+  font-size: 2rem;
+  color: var(--text-muted);
 }
 
 .product-info {
@@ -389,8 +504,9 @@ textarea:focus {
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
   padding: 1.5rem;
-  margin-bottom: 2rem;
+  margin: 0 auto 2rem auto;
   border-left: 4px solid var(--primary-color);
+  max-width: 1000px;
 }
 
 .filter-title {
@@ -398,6 +514,7 @@ textarea:focus {
   margin-bottom: 1rem;
   font-size: 1.25rem;
   color: var(--primary-color);
+  text-align: center;
 }
 
 .filter-form {
@@ -426,7 +543,7 @@ textarea:focus {
 .filter-actions {
   grid-column: 1 / -1;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 0.5rem;
   margin-top: 1rem;
 }
@@ -437,14 +554,16 @@ textarea:focus {
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
   padding: 2rem;
-  margin-bottom: 2rem;
+  margin: 0 auto 2rem auto;
   border-left: 4px solid var(--primary-color);
+  max-width: 800px;
 }
 
 .product-detail-header {
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--border-color);
+  text-align: center;
 }
 
 .product-detail-title {
@@ -453,9 +572,34 @@ textarea:focus {
   color: var(--primary-color);
 }
 
-.product-detail-info {
+.product-detail-content {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: 300px 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.product-detail-image {
+  width: 100%;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--light-color);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.detail-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.product-detail-info {
+  display: flex;
+  flex-direction: column;
   gap: 1.5rem;
 }
 
@@ -476,11 +620,57 @@ textarea:focus {
 .product-detail-actions {
   margin-top: 2rem;
   display: flex;
+  justify-content: center;
   gap: 1rem;
+}
+
+/* Product image styles */
+.image-preview {
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+.preview-img {
+  max-width: 200px;
+  max-height: 150px;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  object-fit: cover;
+}
+
+/* Product form image section */
+.form-group .image-preview {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: var(--light-color);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+}
+
+/* Empty states */
+.empty-products {
+  text-align: center;
+  padding: 3rem 1rem;
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  border-left: 4px solid var(--secondary-color);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.empty-products h3 {
+  color: var(--text-muted);
+  margin-bottom: 1rem;
 }
 
 /* ===== Responsive Styles ===== */
 @media (max-width: 768px) {
+  #root {
+    max-width: 100%;
+    box-shadow: none;
+  }
+
   .navbar {
     flex-direction: column;
     padding: 1rem;
@@ -495,17 +685,36 @@ textarea:focus {
   }
 
   .product-item {
-    flex-direction: column;
-    align-items: flex-start;
+    grid-template-columns: 1fr;
+    text-align: center;
   }
 
   .product-actions {
     margin-top: 1rem;
     width: 100%;
-    justify-content: flex-end;
+    justify-content: center;
   }
 
-  .product-detail-info {
+  .product-detail-content {
     grid-template-columns: 1fr;
+  }
+
+  .product-detail-image {
+    height: 250px;
+    margin-bottom: 1rem;
+  }
+
+  .container {
+    padding: 0.5rem;
+  }
+
+  .product-form-container {
+    margin: 0 0.5rem;
+    padding: 1rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    align-items: center;
   }
 }
