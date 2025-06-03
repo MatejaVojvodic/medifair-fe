@@ -52,6 +52,11 @@ export const getToken = () => {
   return localStorage.getItem("token")
 }
 
+// Add this missing export
+export const getAuthToken = () => {
+  return localStorage.getItem("token")
+}
+
 export const initializeAuth = () => {
   const token = getToken()
   if (token) {

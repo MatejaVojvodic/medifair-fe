@@ -2,7 +2,6 @@ import { useState, useEffect } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { register } from "../api/authService"
 import { useAuth } from "../context/AuthContext"
-import Navbar from "../components/Navbar"
 import "../assets/styles/auth.css"
 
 const Register = () => {
@@ -78,80 +77,77 @@ const Register = () => {
   }
 
   return (
-    <div>
-      <Navbar />
-      <div className="container">
-        <div className="auth-page-container">
-          <div className="auth-container register-container">
-            <h2 className="auth-title">Register for MediFair</h2>
+    <div className="container">
+      <div className="auth-page-container">
+        <div className="auth-container register-container">
+          <h2 className="auth-title">Register for MediFair</h2>
 
-            {/* Error message */}
-            {error && <div className="error-message">{error}</div>}
+          {/* Error message */}
+          {error && <div className="error-message">{error}</div>}
 
-            {/* Registration form */}
-            <form onSubmit={handleSubmit} className="auth-form">
-              <div className="form-group">
-                <label htmlFor="username">Username</label>
-                <input
-                  type="text"
-                  id="username"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleChange}
-                  required
-                  placeholder="Enter your username"
-                  className="form-control"
-                  minLength="3"
-                />
-                <small className="form-text text-muted">Username must be at least 3 characters long</small>
-              </div>
+          {/* Registration form */}
+          <form onSubmit={handleSubmit} className="auth-form">
+            <div className="form-group">
+              <label htmlFor="username">Username</label>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                required
+                placeholder="Enter your username"
+                className="form-control"
+                minLength="3"
+              />
+              <small className="form-text text-muted">Username must be at least 3 characters long</small>
+            </div>
 
-              <div className="form-group">
-                <label htmlFor="password">Password</label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  placeholder="Enter your password"
-                  className="form-control"
-                  minLength="3"
-                />
-                <small className="form-text text-muted">Password must be at least 3 characters long</small>
-              </div>
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                placeholder="Enter your password"
+                className="form-control"
+                minLength="3"
+              />
+              <small className="form-text text-muted">Password must be at least 3 characters long</small>
+            </div>
 
-              <div className="form-group">
-                <label htmlFor="confirmPassword">Confirm Password</label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                  placeholder="Confirm your password"
-                  className="form-control"
-                />
-              </div>
+            <div className="form-group">
+              <label htmlFor="confirmPassword">Confirm Password</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                placeholder="Confirm your password"
+                className="form-control"
+              />
+            </div>
 
-              <div className="registration-info">
-                <p>
-                  <strong>Note:</strong> All new accounts are created as regular users. You'll be able to browse
-                  products, add items to your cart, and place orders.
-                </p>
-              </div>
+            <div className="registration-info">
+              <p>
+                <strong>Note:</strong> All new accounts are created as regular users. You'll be able to browse
+                products, add items to your cart, and place orders.
+              </p>
+            </div>
 
-              <button type="submit" disabled={isLoading} className="auth-button">
-                {isLoading ? "Creating Account..." : "Create Account"}
-              </button>
-            </form>
+            <button type="submit" disabled={isLoading} className="auth-button">
+              {isLoading ? "Creating Account..." : "Create Account"}
+            </button>
+          </form>
 
-            <p className="auth-redirect">
-              Already have an account? <Link to="/login">Login here</Link>
-            </p>
-          </div>
+          <p className="auth-redirect">
+            Already have an account? <Link to="/login">Login here</Link>
+          </p>
         </div>
       </div>
     </div>

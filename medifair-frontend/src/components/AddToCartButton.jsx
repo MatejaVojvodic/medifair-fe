@@ -1,5 +1,7 @@
+"use client"
+
 import { useState } from "react"
-import { useCart } from "../context/CartContext"
+import { useCart } from "../context/CartProvider"
 
 const AddToCartButton = ({ productId, className = "btn btn-primary" }) => {
   const [quantity, setQuantity] = useState(1)

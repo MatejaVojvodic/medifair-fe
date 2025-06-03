@@ -2,7 +2,6 @@ import { useState, useEffect } from "react"
 import { useNavigate, Link, useLocation } from "react-router-dom"
 import { login } from "../api/authService"
 import { useAuth } from "../context/AuthContext"
-import Navbar from "../components/Navbar"
 import "../assets/styles/auth.css"
 
 const Login = () => {
@@ -68,58 +67,55 @@ const Login = () => {
   }
 
   return (
-    <div>
-      <Navbar />
-      <div className="container">
-        <div className="auth-page-container">
-          <div className="auth-container login-container">
-            <h2 className="auth-title">Login to MediFair</h2>
+    <div className="container">
+      <div className="auth-page-container">
+        <div className="auth-container login-container">
+          <h2 className="auth-title">Login to MediFair</h2>
 
-            {/* Success message */}
-            {successMessage && <div className="success-message">{successMessage}</div>}
+          {/* Success message */}
+          {successMessage && <div className="success-message">{successMessage}</div>}
 
-            {/* Error message */}
-            {error && <div className="error-message">{error}</div>}
+          {/* Error message */}
+          {error && <div className="error-message">{error}</div>}
 
-            {/* Login form */}
-            <form onSubmit={handleSubmit} className="auth-form">
-              <div className="form-group">
-                <label htmlFor="username">Username</label>
-                <input
-                  type="text"
-                  id="username"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleChange}
-                  required
-                  placeholder="Enter your username"
-                  className="form-control"
-                />
-              </div>
+          {/* Login form */}
+          <form onSubmit={handleSubmit} className="auth-form">
+            <div className="form-group">
+              <label htmlFor="username">Username</label>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                required
+                placeholder="Enter your username"
+                className="form-control"
+              />
+            </div>
 
-              <div className="form-group">
-                <label htmlFor="password">Password</label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  placeholder="Enter your password"
-                  className="form-control"
-                />
-              </div>
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                placeholder="Enter your password"
+                className="form-control"
+              />
+            </div>
 
-              <button type="submit" disabled={isLoading} className="auth-button">
-                {isLoading ? "Logging in..." : "Login"}
-              </button>
-            </form>
+            <button type="submit" disabled={isLoading} className="auth-button">
+              {isLoading ? "Logging in..." : "Login"}
+            </button>
+          </form>
 
-            <p className="auth-redirect">
-              Don't have an account? <Link to="/register">Register here</Link>
-            </p>
-          </div>
+          <p className="auth-redirect">
+            Don't have an account? <Link to="/register">Register here</Link>
+          </p>
         </div>
       </div>
     </div>

@@ -1,8 +1,9 @@
+"use client"
+
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useCart } from "../context/CartContext"
+import { useCart } from "../context/CartProvider"
 import { useOrder } from "../context/OrderContext"
-import Navbar from "../components/Navbar"
 import "../assets/styles/checkout.css"
 
 const Checkout = () => {
@@ -46,73 +47,67 @@ const Checkout = () => {
 
   if (cart.items.length === 0) {
     return (
-      <div>
-        <Navbar />
-        <div className="container">
-          <div className="empty-cart">
-            <h2>Your cart is empty</h2>
-            <p>Add some items to your cart before checking out.</p>
-            <button onClick={() => navigate("/")} className="btn btn-primary">
-              Continue Shopping
-            </button>
-          </div>
+      <div className="container">
+        <div className="empty-cart">
+          <h2>Your cart is empty</h2>
+          <p>Add some items to your cart before checking out.</p>
+          <button onClick={() => navigate("/")} className="btn btn-primary">
+            Continue Shopping
+          </button>
         </div>
       </div>
     )
   }
 
   return (
-    <div>
-      <Navbar />
-      <div className="container">
-        <div className="checkout-container">
-          <h1>Checkout</h1>
+    <div className="container">
+      <div className="checkout-container">
+        <h1>Checkout</h1>
 
-          <div className="checkout-content">
-            <div className="order-review">
-              <h3>Order Review</h3>
-              <div className="order-items">
-                {cart.items.map((item) => (
-                  <div key={item.productId} className="checkout-item">
-                    <span className="item-name">{item.productName}</span>
-                    <span className="item-quantity">x{item.quantity}</span>
-                    <span className="item-price">${item.subtotal.toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="order-total">
-                <strong>Total: ${cart.totalPrice.toFixed(2)}</strong>
-              </div>
-            </div>
-
-            <div className="shipping-form">
-              <h3>Shipping Information</h3>
-              {error && <div className="error-message">{error}</div>}
-
-              <form onSubmit={handleSubmit}>
-                <div className="form-group">
-                  <label htmlFor="shippingAddress">Shipping Address *</label>
-                  <textarea
-                    id="shippingAddress"
-                    value={shippingAddress}
-                    onChange={(e) => setShippingAddress(e.target.value)}
-                    placeholder="Enter your complete shipping address..."
-                    rows="4"
-                    className="form-control"
-                    required
-                  />
+        <div className="checkout-content">
+          <div className="order-review">
+            <h3>Order Review</h3>
+            <div className="order-items">
+              {cart.items.map((item) => (
+                <div key={item.productId} className="checkout-item">
+                  <span className="item-name">{item.productName}</span>
+                  <span className="item-quantity">x{item.quantity}</span>
+                  <span className="item-price">${item.subtotal.toFixed(2)}</span>
                 </div>
-
-                <div className="checkout-actions">
-                  <button type="button" onClick={() => navigate("/cart")} className="btn btn-secondary">
-                    Back to Cart
-                  </button>
-                  <button type="submit" disabled={isProcessing} className="btn btn-primary btn-lg">
-                    {isProcessing ? "Processing..." : "Place Order"}
-                  </button>
-                </div>
-              </form>
+              ))}
             </div>
+            <div className="order-total">
+              <strong>Total: ${cart.totalPrice.toFixed(2)}</strong>
+            </div>
+          </div>
+
+          <div className="shipping-form">
+            <h3>Shipping Information</h3>
+            {error && <div className="error-message">{error}</div>}
+
+            <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label htmlFor="shippingAddress">Shipping Address *</label>
+                <textarea
+                  id="shippingAddress"
+                  value={shippingAddress}
+                  onChange={(e) => setShippingAddress(e.target.value)}
+                  placeholder="Enter your complete shipping address..."
+                  rows="4"
+                  className="form-control"
+                  required
+                />
+              </div>
+
+              <div className="checkout-actions">
+                <button type="button" onClick={() => navigate("/cart")} className="btn btn-secondary">
+                  Back to Cart
+                </button>
+                <button type="submit" disabled={isProcessing} className="btn btn-primary btn-lg">
+                  {isProcessing ? "Processing..." : "Place Order"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

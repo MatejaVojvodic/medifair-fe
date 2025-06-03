@@ -32,85 +32,92 @@ const ProductFilter = () => {
     <div className="filter-container">
       <h3 className="filter-title">Filter Products</h3>
       <div className="filter-form">
-        <div className="filter-group">
-          <label htmlFor="name" className="filter-label">
-            Product Name
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={filters.name}
-            onChange={handleChange}
-            placeholder="Search by name..."
-            className="filter-control"
-          />
+        {/* Row 1: Search by name */}
+        <div className="filter-row">
+          <div className="filter-group full-width">
+            <label htmlFor="name" className="filter-label">
+              Product Name
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={filters.name}
+              onChange={handleChange}
+              placeholder="Search by name..."
+              className="filter-control"
+            />
+          </div>
         </div>
 
-        <div className="filter-group">
-          <label htmlFor="minPrice" className="filter-label">
-            Min Price ($)
-          </label>
-          <input
-            type="number"
-            id="minPrice"
-            name="minPrice"
-            value={filters.minPrice}
-            onChange={handleChange}
-            placeholder="0.00"
-            min="0"
-            step="0.01"
-            className="filter-control"
-          />
+        {/* Row 2: Price range */}
+        <div className="filter-row">
+          <div className="filter-group">
+            <label htmlFor="minPrice" className="filter-label">
+              Min Price ($)
+            </label>
+            <input
+              type="number"
+              id="minPrice"
+              name="minPrice"
+              value={filters.minPrice}
+              onChange={handleChange}
+              placeholder="0.00"
+              min="0"
+              step="0.01"
+              className="filter-control"
+            />
+          </div>
+          <div className="filter-group">
+            <label htmlFor="maxPrice" className="filter-label">
+              Max Price ($)
+            </label>
+            <input
+              type="number"
+              id="maxPrice"
+              name="maxPrice"
+              value={filters.maxPrice}
+              onChange={handleChange}
+              placeholder="999.99"
+              min="0"
+              step="0.01"
+              className="filter-control"
+            />
+          </div>
         </div>
 
-        <div className="filter-group">
-          <label htmlFor="maxPrice" className="filter-label">
-            Max Price ($)
-          </label>
-          <input
-            type="number"
-            id="maxPrice"
-            name="maxPrice"
-            value={filters.maxPrice}
-            onChange={handleChange}
-            placeholder="999.99"
-            min="0"
-            step="0.01"
-            className="filter-control"
-          />
-        </div>
-
-        <div className="filter-group">
-          <label htmlFor="minQuantity" className="filter-label">
-            Min Quantity
-          </label>
-          <input
-            type="number"
-            id="minQuantity"
-            name="minQuantity"
-            value={filters.minQuantity}
-            onChange={handleChange}
-            placeholder="0"
-            min="0"
-            className="filter-control"
-          />
-        </div>
-
-        <div className="filter-group">
-          <label htmlFor="maxQuantity" className="filter-label">
-            Max Quantity
-          </label>
-          <input
-            type="number"
-            id="maxQuantity"
-            name="maxQuantity"
-            value={filters.maxQuantity}
-            onChange={handleChange}
-            placeholder="1000"
-            min="0"
-            className="filter-control"
-          />
+        {/* Row 3: Quantity range */}
+        <div className="filter-row">
+          <div className="filter-group">
+            <label htmlFor="minQuantity" className="filter-label">
+              Min Quantity
+            </label>
+            <input
+              type="number"
+              id="minQuantity"
+              name="minQuantity"
+              value={filters.minQuantity}
+              onChange={handleChange}
+              placeholder="0"
+              min="0"
+              className="filter-control"
+            />
+          </div>
+          <div className="filter-group">
+            <label htmlFor="maxQuantity" className="filter-label">
+              Max Quantity
+            </label>
+            <input
+              type="number"
+              id="maxQuantity"
+              name="maxQuantity"
+              value={filters.maxQuantity}
+              onChange={handleChange}
+              placeholder="1000"
+              min="0"
+              className="filter-control"
+            />
+          </div>
         </div>
 
         <div className="filter-actions">

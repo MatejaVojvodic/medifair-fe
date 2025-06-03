@@ -1,67 +1,77 @@
 import { Link } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
-import { useCart } from "../context/CartContext"
-import "../assets/styles/product.css"
+import { useCart } from "../context/CartProvider"
+import { useChat } from "../context/ChatContext"
+import "../assets/styles/navbar.css"
 
 const Navbar = () => {
-  const { isLoggedIn, logout, isAdmin, isUser, username, userRoles } = useAuth()
+  const { isLoggedIn, logout, isAdmin, username } = useAuth()
   const { getCartItemCount } = useCart()
-
-  // Debug logs
-  console.log("Navbar - Auth state:", { isLoggedIn, username, userRoles })
-  console.log("Navbar - isAdmin function:", typeof isAdmin)
-
-  // Safety check for functions
-  const checkIsAdmin = () => {
-    if (typeof isAdmin === "function") {
-      return isAdmin()
-    }
-    console.error("isAdmin is not a function")
-    return false
-  }
+  const { getTotalUnreadCount, connected } = useChat()
 
   return (
     <nav className="navbar">
-      <div className="navbar-brand">
-        <Link to="/">MediFair</Link>
-      </div>
-      <div className="navbar-menu">
-        {isLoggedIn ? (
-          <>
-            <Link to="/" className="navbar-item">
-              Home
-            </Link>
-            {checkIsAdmin() && (
-              <Link to="/create" className="navbar-item">
-                Create Product
+      <div className="navbar-container">
+        <Link to="/" className="navbar-logo">
+          MediFair
+        </Link>
+
+        <div className="navbar-links">
+          <Link to="/" className="navbar-link">
+            Home
+          </Link>
+          {isLoggedIn && (
+            <>
+              <Link to="/profile" className="navbar-link">
+                Profile
               </Link>
-            )}
-            <Link to="/cart" className="navbar-item cart-link">
-              🛒 Cart ({getCartItemCount()})
-            </Link>
-            <Link to="/orders" className="navbar-item">
-              My Orders
-            </Link>
-            <Link to="/profile" className="navbar-item">
-              Profile
-            </Link>
-            <span className="navbar-item user-info">
-              {username}
-            </span>
-            <button onClick={logout} className="navbar-item logout-btn">
-              Logout
-            </button>
-          </>
-        ) : (
-          <>
-            <Link to="/login" className="navbar-item">
-              Login
-            </Link>
-            <Link to="/register" className="navbar-item">
-              Register
-            </Link>
-          </>
-        )}
+              {isAdmin() && (
+                <Link to="/create" className="navbar-link">
+                  Add Product
+                </Link>
+              )}
+              <Link to="/orders" className="navbar-link">
+                Orders
+              </Link>
+              <Link to="/chat" className="navbar-link">
+                Chat
+                {getTotalUnreadCount() > 0 && <span className="unread-badge">{getTotalUnreadCount()}</span>}
+                {connected ? (
+                  <span className="connection-indicator online"></span>
+                ) : (
+                  <span className="connection-indicator offline"></span>
+                )}
+              </Link>
+            </>
+          )}
+        </div>
+
+        <div className="navbar-actions">
+          {isLoggedIn ? (
+            <>
+              <Link to="/cart" className="navbar-link cart-link">
+                🛒 Cart ({getCartItemCount()})
+              </Link>
+              <div className="user-info">
+                <span className="username">
+                  {username} {isAdmin() ? "(Admin)" : "(User)"}
+                </span>
+                <button onClick={logout} className="logout-btn">
+                  Logout
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="auth-links">
+              <Link to="/login" className="auth-link">
+                Login
+              </Link>
+              <Link to="/register" className="auth-link">
+                Register
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   )

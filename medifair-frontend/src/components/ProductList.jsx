@@ -33,7 +33,7 @@ const ProductList = () => {
     if (product.imageUrl) {
       return product.imageUrl
     }
-    return "https://via.placeholder.com/80x80?text=No+Image"
+    return "/placeholder.svg?height=80&width=80&text=No+Image"
   }
 
   if (products.length === 0) {
@@ -57,7 +57,7 @@ const ProductList = () => {
                 alt={product.name}
                 className="product-img"
                 onError={(e) => {
-                  e.target.src = "https://via.placeholder.com/80x80?text=No+Image"
+                  e.target.src = "/placeholder.svg?height=80&width=80&text=No+Image"
                 }}
               />
             </div>

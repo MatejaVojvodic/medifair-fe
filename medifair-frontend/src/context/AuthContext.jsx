@@ -88,6 +88,7 @@ export const AuthProvider = ({ children }) => {
     logout: handleLogout,
     isAdmin,
     isUser,
+    getToken, // Add getToken method
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

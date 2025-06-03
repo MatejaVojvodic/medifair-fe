@@ -50,30 +50,35 @@
 
 // export default App
 
-import { BrowserRouter } from "react-router-dom"
-import AppRoutes from "./routes/AppRoutes"
-import { ProductProvider } from "./context/ProductContext"
+import { BrowserRouter as Router } from "react-router-dom"
 import { AuthProvider } from "./context/AuthContext"
-import { CartProvider } from "./context/CartContext"
+import { ProductProvider } from "./context/ProductContext"
+import { CartProvider } from "./context/CartProvider"
 import { OrderProvider } from "./context/OrderContext"
-import "./assets/styles/auth.css"
-import "./assets/styles/product.css"
-import "./assets/styles/product-detail.css"
+import { ChatProvider } from "./context/ChatContext"
+import AppRoutes from "./routes/AppRoutes"
+import "./assets/styles/global.css"
 
 function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <AuthProvider>
         <ProductProvider>
           <CartProvider>
             <OrderProvider>
-              <AppRoutes />
+              <ChatProvider>
+                <div className="App">
+                  <AppRoutes />
+                </div>
+              </ChatProvider>
             </OrderProvider>
           </CartProvider>
         </ProductProvider>
       </AuthProvider>
-    </BrowserRouter>
+    </Router>
   )
 }
 
 export default App
+
+
