@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { useChat } from "../context/ChatContext"
 import { useAuth } from "../context/AuthContext"
-import { getAvailableUsers } from "../api/chatService"
+import { getAvailableUsersFromMain, cleanupDuplicateUsers } from "../api/chatService"
 import ChatWindow from "../components/ChatWindow"
 import "../assets/styles/chat.css"
 
@@ -29,18 +29,32 @@ const Chat = () => {
     setError("")
 
     try {
-      console.log("Loading available users...")
-      const users = await getAvailableUsers()
-      console.log("Loaded users:", users)
+      console.log("Loading available users from main system...")
+
+      // First, try to cleanup any duplicate users
+      try {
+        await cleanupDuplicateUsers()
+        console.log("Cleaned up duplicate users")
+      } catch (cleanupError) {
+        console.warn("Could not cleanup duplicates:", cleanupError)
+      }
+
+      // Get users from main system
+      const users = await getAvailableUsersFromMain()
+      console.log("Loaded users from main system:", users)
 
       // Filter out current user
       const filteredUsers = users.filter((u) => u.username !== username)
-      console.log("Filtered users:", filteredUsers)
+      console.log("Filtered users (excluding current):", filteredUsers)
 
       setAvailableUsers(filteredUsers)
+
+      if (filteredUsers.length === 0) {
+        setError("No other users found. Make sure other users are registered in the system.")
+      }
     } catch (error) {
       console.error("Error loading users:", error)
-      setError("Failed to load users. Please try again.")
+      setError("Failed to load users. Please try again or contact support.")
     } finally {
       setLoadingUsers(false)
     }
@@ -105,6 +119,20 @@ const Chat = () => {
     } else {
       return date.toLocaleDateString()
     }
+  }
+
+  const getUserDisplayName = (user) => {
+    if (user.firstName && user.lastName) {
+      return `${user.firstName} ${user.lastName}`
+    }
+    return user.username
+  }
+
+  const getUserRole = (user) => {
+    if (user.roles && Array.isArray(user.roles)) {
+      return user.roles.includes("ADMIN") ? "Admin" : "User"
+    }
+    return "User"
   }
 
   if (!isLoggedIn) {
@@ -192,15 +220,24 @@ const Chat = () => {
 
             <div className="users-list">
               {loadingUsers ? (
-                <div className="loading">Loading users...</div>
+                <div className="loading">Loading users from main system...</div>
               ) : filteredUsers.length === 0 ? (
                 <div className="no-messages">
-                  {availableUsers.length === 0 ? "No other users found" : "No users match your search"}
+                  {availableUsers.length === 0 ? (
+                    <div>
+                      <p>No other users found</p>
+                      <p style={{ fontSize: "0.9rem", color: "var(--text-muted)" }}>
+                        Make sure other users are registered in the main system
+                      </p>
+                    </div>
+                  ) : (
+                    "No users match your search"
+                  )}
                 </div>
               ) : (
                 filteredUsers.map((user) => (
                   <div
-                    key={user.id}
+                    key={user.id || user.username}
                     className="user-item"
                     onClick={() => !creatingChat && handleSelectUser(user)}
                     style={{
@@ -208,10 +245,11 @@ const Chat = () => {
                       cursor: creatingChat ? "not-allowed" : "pointer",
                     }}
                   >
-                    <div className="user-avatar">{user.username.charAt(0).toUpperCase()}</div>
+                    <div className="user-avatar">{getUserDisplayName(user).charAt(0).toUpperCase()}</div>
                     <div className="user-info">
-                      <div className="user-name">{user.username}</div>
-                      <div className="user-role">{user.roles && user.roles.includes("ADMIN") ? "Admin" : "User"}</div>
+                      <div className="user-name">{getUserDisplayName(user)}</div>
+                      <div className="user-username">@{user.username}</div>
+                      <div className="user-role">{getUserRole(user)}</div>
                     </div>
                     {creatingChat && <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Creating...</div>}
                   </div>
