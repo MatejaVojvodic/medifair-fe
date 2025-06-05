@@ -14,6 +14,7 @@ const Chat = () => {
   const [searchTerm, setSearchTerm] = useState("")
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [creatingChat, setCreatingChat] = useState(false)
+  const [error, setError] = useState("")
 
   useEffect(() => {
     // Set the first chat room as active if none is selected
@@ -25,14 +26,21 @@ const Chat = () => {
   const handleNewChat = async () => {
     setShowNewChatModal(true)
     setLoadingUsers(true)
+    setError("")
 
     try {
+      console.log("Loading available users...")
       const users = await getAvailableUsers()
+      console.log("Loaded users:", users)
+
       // Filter out current user
       const filteredUsers = users.filter((u) => u.username !== username)
+      console.log("Filtered users:", filteredUsers)
+
       setAvailableUsers(filteredUsers)
     } catch (error) {
       console.error("Error loading users:", error)
+      setError("Failed to load users. Please try again.")
     } finally {
       setLoadingUsers(false)
     }
@@ -40,18 +48,26 @@ const Chat = () => {
 
   const handleSelectUser = async (selectedUser) => {
     setCreatingChat(true)
+    setError("")
 
     try {
+      console.log("Selecting user:", selectedUser)
+
       // Check if a chat room already exists with this user
       const existingRoom = chatRooms.find((room) => room.participantUsernames.includes(selectedUser.username))
 
       if (existingRoom) {
+        console.log("Found existing room:", existingRoom)
         setActiveRoom(existingRoom)
       } else {
+        console.log("Creating new chat room with:", selectedUser.username)
         // Create a new chat room
         const newRoom = await createChatRoom(selectedUser.username)
+        console.log("New room created:", newRoom)
+
         if (newRoom) {
           setActiveRoom(newRoom)
+          // Refresh chat rooms to get the updated list
           await refreshChatRooms()
         }
       }
@@ -60,6 +76,7 @@ const Chat = () => {
       setSearchTerm("")
     } catch (error) {
       console.error("Error creating/selecting chat:", error)
+      setError("Failed to create chat. Please try again.")
     } finally {
       setCreatingChat(false)
     }
@@ -159,6 +176,12 @@ const Chat = () => {
               </button>
             </div>
 
+            {error && (
+              <div className="error-message" style={{ margin: "1rem" }}>
+                {error}
+              </div>
+            )}
+
             <input
               type="text"
               className="user-search"
@@ -171,24 +194,36 @@ const Chat = () => {
               {loadingUsers ? (
                 <div className="loading">Loading users...</div>
               ) : filteredUsers.length === 0 ? (
-                <div className="no-messages">No users found</div>
+                <div className="no-messages">
+                  {availableUsers.length === 0 ? "No other users found" : "No users match your search"}
+                </div>
               ) : (
                 filteredUsers.map((user) => (
                   <div
                     key={user.id}
                     className="user-item"
-                    onClick={() => handleSelectUser(user)}
-                    style={{ opacity: creatingChat ? 0.6 : 1 }}
+                    onClick={() => !creatingChat && handleSelectUser(user)}
+                    style={{
+                      opacity: creatingChat ? 0.6 : 1,
+                      cursor: creatingChat ? "not-allowed" : "pointer",
+                    }}
                   >
                     <div className="user-avatar">{user.username.charAt(0).toUpperCase()}</div>
                     <div className="user-info">
                       <div className="user-name">{user.username}</div>
                       <div className="user-role">{user.roles && user.roles.includes("ADMIN") ? "Admin" : "User"}</div>
                     </div>
+                    {creatingChat && <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Creating...</div>}
                   </div>
                 ))
               )}
             </div>
+
+            {creatingChat && (
+              <div className="loading" style={{ padding: "1rem" }}>
+                Creating chat room...
+              </div>
+            )}
           </div>
         </div>
       )}

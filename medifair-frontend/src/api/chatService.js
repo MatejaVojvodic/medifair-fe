@@ -3,8 +3,9 @@ import SockJS from "sockjs-client"
 import { Stomp } from "@stomp/stompjs"
 import { getAuthToken } from "./authService"
 
-const API_URL = "http://localhost:8081/api/chat" // Fixed: Changed from 8080 to 8081
+const API_URL = "http://localhost:8081/api/chat"
 const WS_URL = "http://localhost:8081/ws/chat"
+const MAIN_API_URL = "http://localhost:8080/api/users"
 
 let stompClient = null
 
@@ -14,19 +15,42 @@ const chatApi = axios.create({
   withCredentials: true,
 })
 
+// Create axios instance for main server
+const mainApi = axios.create({
+  baseURL: MAIN_API_URL,
+  withCredentials: true,
+})
+
 // Add auth token to every request
-chatApi.interceptors.request.use(
-  (config) => {
-    const token = getAuthToken()
-    if (token) {
-      config.headers["Authorization"] = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
-  },
-)
+const addAuthInterceptor = (apiInstance) => {
+  apiInstance.interceptors.request.use(
+    (config) => {
+      const token = getAuthToken()
+      if (token) {
+        config.headers["Authorization"] = `Bearer ${token}`
+      }
+      console.log("API request:", config.method?.toUpperCase(), config.url, config.headers)
+      return config
+    },
+    (error) => {
+      return Promise.reject(error)
+    },
+  )
+
+  apiInstance.interceptors.response.use(
+    (response) => {
+      console.log("API response:", response.status, response.config.url)
+      return response
+    },
+    (error) => {
+      console.error("API error:", error.response?.status, error.response?.data, error.config?.url)
+      return Promise.reject(error)
+    },
+  )
+}
+
+addAuthInterceptor(chatApi)
+addAuthInterceptor(mainApi)
 
 export const connectToChat = (token, onMessageReceived, onConnected, onError) => {
   const socket = new SockJS(WS_URL)
@@ -76,9 +100,14 @@ export const sendMessage = async (receiverUsername, content, type = "TEXT") => {
   }
 }
 
+// Create or get existing chat room with a user
 export const createChatRoom = async (receiverUsername) => {
   try {
-    const response = await chatApi.post("/rooms", { receiverUsername })
+    console.log("Creating chat room with:", receiverUsername)
+    const response = await chatApi.post("/rooms/create", {
+      receiverUsername: receiverUsername,
+    })
+    console.log("Chat room created:", response.data)
     return response.data
   } catch (error) {
     console.error("Error creating chat room:", error)
@@ -125,12 +154,41 @@ export const getUnreadMessageCount = async (chatRoomId) => {
   }
 }
 
+// Get users from chat system (fallback)
 export const getAvailableUsers = async () => {
   try {
     const response = await chatApi.get("/users")
+    console.log("Available users from chat system:", response.data)
     return response.data
   } catch (error) {
-    console.error("Error fetching available users:", error)
+    console.error("Error fetching available users from chat system:", error)
+    throw error
+  }
+}
+
+// Get users from main system (primary method)
+export const getAvailableUsersFromMain = async () => {
+  try {
+    console.log("Fetching users from main system...")
+    const response = await mainApi.get("/for-chat")
+    console.log("Available users from main system:", response.data)
+    return response.data
+  } catch (error) {
+    console.error("Error fetching users from main system:", error)
+    // Fallback to chat system
+    console.log("Falling back to chat system users...")
+    return await getAvailableUsers()
+  }
+}
+
+// Sync users from main to chat system
+export const syncUsersToChat = async () => {
+  try {
+    const response = await chatApi.post("/sync-users")
+    console.log("Users synced to chat system")
+    return response.data
+  } catch (error) {
+    console.error("Error syncing users to chat system:", error)
     throw error
   }
 }
@@ -141,6 +199,18 @@ export const checkChatHealth = async () => {
     return response.data
   } catch (error) {
     console.error("Chat service health check failed:", error)
+    throw error
+  }
+}
+
+// Cleanup duplicate users
+export const cleanupDuplicateUsers = async () => {
+  try {
+    const response = await chatApi.post("/cleanup-duplicates")
+    console.log("Duplicate users cleaned up")
+    return response.data
+  } catch (error) {
+    console.error("Error cleaning up duplicate users:", error)
     throw error
   }
 }

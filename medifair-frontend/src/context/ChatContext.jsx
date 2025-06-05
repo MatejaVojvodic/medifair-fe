@@ -2,7 +2,12 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 import SockJS from "sockjs-client"
 import { Stomp } from "@stomp/stompjs"
 import { useAuth } from "./AuthContext"
-import { getUserChatRooms, getUnreadMessageCount, createChatRoom as apiCreateChatRoom } from "../api/chatService"
+import {
+  getUserChatRooms,
+  getUnreadMessageCount,
+  createChatRoom as apiCreateChatRoom,
+  sendMessage as apiSendMessage,
+} from "../api/chatService"
 
 const ChatContext = createContext()
 
@@ -32,7 +37,7 @@ export const ChatProvider = ({ children }) => {
     if (!token) return
 
     const socket = new SockJS("http://localhost:8081/ws/chat")
-    const client = Stomp.over(socket)
+    const client = Stomp.over(() => socket) // Fix: Provide factory function
 
     // Disable debug logging
     client.debug = () => {}
@@ -51,6 +56,7 @@ export const ChatProvider = ({ children }) => {
         // Subscribe to personal queue for direct messages
         client.subscribe(`/user/${username}/queue/messages`, (message) => {
           const receivedMessage = JSON.parse(message.body)
+          console.log("Received WebSocket message:", receivedMessage)
           handleNewMessage(receivedMessage)
         })
 
@@ -78,6 +84,15 @@ export const ChatProvider = ({ children }) => {
 
     return () => {
       if (client && client.connected) {
+        // Notify server that user is going offline
+        client.send(
+          "/app/chat.removeUser",
+          {},
+          JSON.stringify({
+            username: username,
+            status: "OFFLINE",
+          }),
+        )
         client.disconnect()
         setConnected(false)
         setStompClient(null)
@@ -93,6 +108,7 @@ export const ChatProvider = ({ children }) => {
       try {
         setLoading(true)
         const rooms = await getUserChatRooms()
+        console.log("Loaded chat rooms:", rooms)
         setChatRooms(rooms)
 
         // Get unread counts for each room
@@ -119,8 +135,14 @@ export const ChatProvider = ({ children }) => {
   // Handle new messages
   const handleNewMessage = useCallback(
     (message) => {
+      console.log("Handling new message:", message)
       setMessages((prevMessages) => {
         const roomMessages = prevMessages[message.chatRoomId] || []
+        // Check if message already exists to avoid duplicates
+        const messageExists = roomMessages.some((msg) => msg.id === message.id)
+        if (messageExists) {
+          return prevMessages
+        }
         return {
           ...prevMessages,
           [message.chatRoomId]: [...roomMessages, message],
@@ -156,8 +178,19 @@ export const ChatProvider = ({ children }) => {
   const createChatRoom = useCallback(async (receiverUsername) => {
     try {
       setLoading(true)
+      console.log("Creating chat room with:", receiverUsername)
       const newRoom = await apiCreateChatRoom(receiverUsername)
-      setChatRooms((prevRooms) => [...prevRooms, newRoom])
+      console.log("Chat room created successfully:", newRoom)
+
+      // Add the new room to the list if it's not already there
+      setChatRooms((prevRooms) => {
+        const exists = prevRooms.find((room) => room.id === newRoom.id)
+        if (exists) {
+          return prevRooms
+        }
+        return [...prevRooms, newRoom]
+      })
+
       return newRoom
     } catch (error) {
       console.error("Error creating chat room:", error)
@@ -170,8 +203,24 @@ export const ChatProvider = ({ children }) => {
   // Send message via WebSocket
   const sendMessage = useCallback(
     (roomId, receiverUsername, content, type = "TEXT") => {
+      console.log("=== Sending Message ===")
+      console.log("Room ID:", roomId)
+      console.log("Receiver:", receiverUsername)
+      console.log("Content:", content)
+      console.log("Connected:", connected)
+      console.log("StompClient:", !!stompClient)
+
       if (!stompClient || !connected) {
-        console.error("WebSocket not connected")
+        console.error("WebSocket not connected, trying HTTP fallback")
+        // Fallback to HTTP API
+        apiSendMessage(receiverUsername, content, type)
+          .then((savedMessage) => {
+            console.log("Message sent via HTTP:", savedMessage)
+            handleNewMessage(savedMessage)
+          })
+          .catch((error) => {
+            console.error("Error sending message via HTTP:", error)
+          })
         return
       }
 
@@ -182,9 +231,10 @@ export const ChatProvider = ({ children }) => {
         type,
       }
 
+      console.log("Sending message via WebSocket:", message)
       stompClient.send("/app/chat.send", {}, JSON.stringify(message))
     },
-    [stompClient, connected],
+    [stompClient, connected, handleNewMessage],
   )
 
   // Refresh chat rooms
@@ -194,6 +244,7 @@ export const ChatProvider = ({ children }) => {
     try {
       setLoading(true)
       const rooms = await getUserChatRooms()
+      console.log("Refreshed chat rooms:", rooms)
       setChatRooms(rooms)
 
       // Get unread counts for each room
