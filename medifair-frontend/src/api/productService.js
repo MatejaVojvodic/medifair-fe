@@ -1,10 +1,91 @@
-import axios from "axios"
+// import axios from "axios"
 
-const API_URL = "http://localhost:8080/products"
+// const API_URL = "http://localhost:8080/products"
+
+// export const getAllProducts = async () => {
+//   try {
+//     const response = await axios.get(API_URL)
+//     return response.data
+//   } catch (error) {
+//     console.error("Error fetching products:", error)
+//     return []
+//   }
+// }
+
+// export const getProductById = async (id) => {
+//   try {
+//     const response = await axios.get(`${API_URL}/${id}`)
+//     return response.data
+//   } catch (error) {
+//     console.error(`Error fetching product ${id}:`, error)
+//     throw error
+//   }
+// }
+
+// export const createProduct = async (product) => {
+//   try {
+//     const response = await axios.post(API_URL, product)
+//     return response.data
+//   } catch (error) {
+//     console.error("Error creating product:", error)
+//     throw error
+//   }
+// }
+
+// export const updateProduct = async (id, product) => {
+//   try {
+//     const response = await axios.put(`${API_URL}/${id}`, product)
+//     return response.data
+//   } catch (error) {
+//     console.error(`Error updating product ${id}:`, error)
+//     throw error
+//   }
+// }
+
+// export const deleteProduct = async (id) => {
+//   try {
+//     await axios.delete(`${API_URL}/${id}`)
+//   } catch (error) {
+//     console.error(`Error deleting product ${id}:`, error)
+//     throw error
+//   }
+// }
+
+// export const filterProducts = async (filters) => {
+//   try {
+//     const response = await axios.get(`${API_URL}/filter`, { params: filters })
+//     return response.data
+//   } catch (error) {
+//     console.error("Error filtering products:", error)
+//     return []
+//   }
+// }
+
+import axios from "axios"
+import { API_BASE_URL } from "./config.js"
+
+// Create axios instance for products
+const productAPI = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+})
+
+// Add auth interceptor
+productAPI.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token")
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
 
 export const getAllProducts = async () => {
   try {
-    const response = await axios.get(API_URL)
+    console.log("Fetching products from:", `${API_BASE_URL}/products`)
+    const response = await productAPI.get("/products")
     return response.data
   } catch (error) {
     console.error("Error fetching products:", error)
@@ -14,7 +95,8 @@ export const getAllProducts = async () => {
 
 export const getProductById = async (id) => {
   try {
-    const response = await axios.get(`${API_URL}/${id}`)
+    console.log("Fetching product by ID from:", `${API_BASE_URL}/products/${id}`)
+    const response = await productAPI.get(`/products/${id}`)
     return response.data
   } catch (error) {
     console.error(`Error fetching product ${id}:`, error)
@@ -24,7 +106,8 @@ export const getProductById = async (id) => {
 
 export const createProduct = async (product) => {
   try {
-    const response = await axios.post(API_URL, product)
+    console.log("Creating product at:", `${API_BASE_URL}/products`)
+    const response = await productAPI.post("/products", product)
     return response.data
   } catch (error) {
     console.error("Error creating product:", error)
@@ -34,7 +117,8 @@ export const createProduct = async (product) => {
 
 export const updateProduct = async (id, product) => {
   try {
-    const response = await axios.put(`${API_URL}/${id}`, product)
+    console.log("Updating product at:", `${API_BASE_URL}/products/${id}`)
+    const response = await productAPI.put(`/products/${id}`, product)
     return response.data
   } catch (error) {
     console.error(`Error updating product ${id}:`, error)
@@ -44,7 +128,8 @@ export const updateProduct = async (id, product) => {
 
 export const deleteProduct = async (id) => {
   try {
-    await axios.delete(`${API_URL}/${id}`)
+    console.log("Deleting product at:", `${API_BASE_URL}/products/${id}`)
+    await productAPI.delete(`/products/${id}`)
   } catch (error) {
     console.error(`Error deleting product ${id}:`, error)
     throw error
@@ -53,10 +138,12 @@ export const deleteProduct = async (id) => {
 
 export const filterProducts = async (filters) => {
   try {
-    const response = await axios.get(`${API_URL}/filter`, { params: filters })
+    console.log("Filtering products at:", `${API_BASE_URL}/products/filter`)
+    const response = await productAPI.get("/products/filter", { params: filters })
     return response.data
   } catch (error) {
     console.error("Error filtering products:", error)
     return []
   }
 }
+
