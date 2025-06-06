@@ -13,7 +13,7 @@ cache:
 variables:
   DOCKER_HOST: tcp://docker:2375
   DOCKER_TLS_CERTDIR: ""
-  FRONTEND_IMAGE_NAME: "mateja2000/medifair-frontend"  
+  FRONTEND_IMAGE_NAME: "mateja2000/medifair-frontend"
 
 build:
   stage: build
@@ -28,81 +28,6 @@ build:
       - medifair-frontend/dist/
     expire_in: 1 day
 
-# test:
-#   stage: test
-#   script:
-#     - cd medifair-frontend
-#     - echo "Running tests..."
-#     - npm test || echo "No tests found, skipping..."
-#   allow_failure: true 
-
-e2e_tests:
-  stage: test
-  image: cypress/browsers:node18.12.0-chrome106-ff106
-  script:
-    - cd medifair-frontend
-    - echo "Installing dependencies for E2E tests..."
-    - npm ci || npm install
-    - echo "Installing Cypress if not already installed..."
-    - npm install cypress --save-dev
-    - echo "Creating cypress.config.js with ES module syntax..."
-    - |
-      cat > cypress.config.js << 'EOL'
-      import { defineConfig } from 'cypress';
-
-      export default defineConfig({
-        e2e: {
-          baseUrl: 'http://localhost:5173',
-          setupNodeEvents(on, config) {
-            // implement node event listeners here
-          },
-          specPattern: 'cypress/e2e/**/*.cy.{js,jsx,ts,tsx}',
-          supportFile: 'cypress/support/e2e.js',
-        },
-        viewportWidth: 1280,
-        viewportHeight: 720,
-        defaultCommandTimeout: 10000,
-        video: false,
-        screenshotOnRunFailure: true,
-      });
-      EOL
-    - echo "Creating basic test structure..."
-    - mkdir -p cypress/e2e cypress/support
-    - |
-      cat > cypress/support/e2e.js << 'EOL'
-      // Import commands.js using ES modules syntax
-      import './commands';
-      EOL
-    - |
-      cat > cypress/support/commands.js << 'EOL'
-      // Add custom commands here
-      EOL
-    - |
-      cat > cypress/e2e/basic.cy.js << 'EOL'
-      describe('Basic App Test', () => {
-        it('should load the application', () => {
-          cy.visit('/');
-          cy.get('body').should('be.visible');
-        });
-      });
-      EOL
-    - echo "Installing wait-on package..."
-    - npm install wait-on --save-dev
-    - echo "Starting development server in background..."
-    - npm run dev &
-    - echo "Waiting for server to be ready..."
-    - npx wait-on http://localhost:5173 --timeout 30000 || echo "Server may not be ready, but continuing..."
-    - echo "Running E2E tests..."
-    - npx cypress run --browser chrome --headless || echo "E2E tests failed, but continuing pipeline"
-  artifacts:
-    when: always
-    paths:
-      - medifair-frontend/cypress/screenshots/
-      - medifair-frontend/cypress/videos/
-    expire_in: 1 week
-  allow_failure: true  
-  timeout: 15m  
-
 docker:
   stage: docker
   image: docker:latest
@@ -114,7 +39,7 @@ docker:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   script:
     - cd medifair-frontend
-    - echo "Building Docker image..."
+    - echo "Creating Dockerfile..."
     - |
       cat > Dockerfile << 'EOL'
       FROM nginx:alpine
@@ -123,6 +48,7 @@ docker:
       EXPOSE 80
       CMD ["nginx", "-g", "daemon off;"]
       EOL
+    - echo "Creating nginx.conf..."
     - |
       cat > nginx.conf << 'EOL'
       server {
@@ -131,20 +57,62 @@ docker:
           root /usr/share/nginx/html;
           index index.html;
           
+          # Enable gzip compression
+          gzip on;
+          gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+          
+          # Handle React Router
           location / {
               try_files $uri $uri/ /index.html;
+              add_header Cache-Control "no-cache, no-store, must-revalidate";
+              add_header Pragma "no-cache";
+              add_header Expires "0";
           }
           
-          location /api/core/ {
-              proxy_pass http://medifair-backend-service;
+          # Proxy requests to main backend
+          location /api/ {
+              proxy_pass http://167.99.17.26/;
               proxy_set_header Host $host;
               proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_connect_timeout 30s;
+              proxy_send_timeout 30s;
+              proxy_read_timeout 30s;
           }
           
-          location /api/extra/ {
-              proxy_pass http://medifair-extra;
+          # Proxy requests to chat service
+          location /api/chat/ {
+              proxy_pass http://209.38.52.45/api/chat/;
               proxy_set_header Host $host;
               proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_connect_timeout 30s;
+              proxy_send_timeout 30s;
+              proxy_read_timeout 30s;
+          }
+          
+          # WebSocket support for chat
+          location /ws/ {
+              proxy_pass http://209.38.52.45/ws/;
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_connect_timeout 7d;
+              proxy_send_timeout 7d;
+              proxy_read_timeout 7d;
+          }
+          
+          # Health check endpoint
+          location /health {
+              access_log off;
+              return 200 "healthy\n";
+              add_header Content-Type text/plain;
           }
       }
       EOL
@@ -167,6 +135,8 @@ deploy:
       kind: Deployment
       metadata:
         name: medifair-frontend
+        labels:
+          app: medifair-frontend
       spec:
         replicas: 2
         selector:
@@ -183,39 +153,38 @@ deploy:
                 imagePullPolicy: Always
                 ports:
                   - containerPort: 80
-                env:
-                  - name: BACKEND_URL
-                    value: "http://167.99.17.26"
-                  - name: EXTRA_SERVICE_URL
-                    value: "http://209.38.52.45"
                 readinessProbe:
                   httpGet:
-                    path: /
+                    path: /health
                     port: 80
                   initialDelaySeconds: 10
                   periodSeconds: 5
-                  timeoutSeconds: 2
-                  successThreshold: 1
-                  failureThreshold: 3
                 livenessProbe:
                   httpGet:
-                    path: /
+                    path: /health
                     port: 80
                   initialDelaySeconds: 30
                   periodSeconds: 10
-                  timeoutSeconds: 2
-                  successThreshold: 1
-                  failureThreshold: 3
+                resources:
+                  requests:
+                    memory: "128Mi"
+                    cpu: "100m"
+                  limits:
+                    memory: "256Mi"
+                    cpu: "200m"
       ---
       apiVersion: v1
       kind: Service
       metadata:
         name: medifair-frontend-service
+        labels:
+          app: medifair-frontend
       spec:
         selector:
           app: medifair-frontend
         ports:
-          - protocol: TCP
+          - name: http
+            protocol: TCP
             port: 80
             targetPort: 80
         type: LoadBalancer
@@ -224,18 +193,9 @@ deploy:
     - echo "$KUBE_CONFIG_CLUSTER1" > kubeconfig.yaml
     - export KUBECONFIG=kubeconfig.yaml
     - kubectl apply -f deployment-frontend.yaml
-    - echo "Checking pod status before waiting for rollout..."
-    - kubectl get pods -l app=medifair-frontend
-    - echo "Checking for any pod errors..."
-    - kubectl describe pods -l app=medifair-frontend | grep -i -A 10 "Events:"
-    - echo "Waiting for deployment to complete (with timeout)..."
-    - kubectl rollout status deployment/medifair-frontend --timeout=3m || true
-    - echo "Deployment status after timeout:"
-    - kubectl get deployment medifair-frontend
-    - echo "Pod status:"
-    - kubectl get pods -l app=medifair-frontend
+    - echo "Waiting for deployment to complete..."
+    - kubectl rollout status deployment/medifair-frontend --timeout=5m
     - echo "Getting service information..."
     - kubectl get service medifair-frontend-service
   only:
     - main
-  timeout: 15m 
