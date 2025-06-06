@@ -1,18 +1,72 @@
+// import axios from "axios"
+
+// const API_URL = "http://localhost:8080/orders"
+
+// export const checkout = async (checkoutData) => {
+//   const response = await axios.post(`${API_URL}/checkout`, checkoutData)
+//   return response.data
+// }
+
+// export const getUserOrders = async () => {
+//   const response = await axios.get(API_URL)
+//   return response.data
+// }
+
+// export const getOrderById = async (orderId) => {
+//   const response = await axios.get(`${API_URL}/${orderId}`)
+//   return response.data
+// }
+
 import axios from "axios"
+import { API_BASE_URL } from "./config.js"
 
-const API_URL = "http://localhost:8080/orders"
+// Create axios instance for orders
+const orderAPI = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+})
 
-export const checkout = async (checkoutData) => {
-  const response = await axios.post(`${API_URL}/checkout`, checkoutData)
-  return response.data
+// Add auth interceptor
+orderAPI.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token")
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+export const createOrder = async (orderData) => {
+  try {
+    console.log("Creating order at:", `${API_BASE_URL}/api/orders`)
+    const response = await orderAPI.post("/api/orders", orderData)
+    return response.data
+  } catch (error) {
+    console.error("Error creating order:", error)
+    throw error
+  }
 }
 
-export const getUserOrders = async () => {
-  const response = await axios.get(API_URL)
-  return response.data
+export const getOrders = async () => {
+  try {
+    console.log("Getting orders from:", `${API_BASE_URL}/api/orders`)
+    const response = await orderAPI.get("/api/orders")
+    return response.data
+  } catch (error) {
+    console.error("Error fetching orders:", error)
+    throw error
+  }
 }
 
 export const getOrderById = async (orderId) => {
-  const response = await axios.get(`${API_URL}/${orderId}`)
-  return response.data
+  try {
+    console.log("Getting order by ID from:", `${API_BASE_URL}/api/orders/${orderId}`)
+    const response = await orderAPI.get(`/api/orders/${orderId}`)
+    return response.data
+  } catch (error) {
+    console.error("Error fetching order:", error)
+    throw error
+  }
 }

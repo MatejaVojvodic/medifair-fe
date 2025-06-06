@@ -34,8 +34,8 @@
 import axios from "axios"
 import { API_BASE_URL } from "./config.js"
 
-// Create axios instance for products
-const productAPI = axios.create({
+// Create axios instance for cart
+const cartAPI = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
@@ -44,7 +44,7 @@ const productAPI = axios.create({
 })
 
 // Add auth interceptor
-productAPI.interceptors.request.use((config) => {
+cartAPI.interceptors.request.use((config) => {
   const token = localStorage.getItem("token")
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
@@ -52,67 +52,63 @@ productAPI.interceptors.request.use((config) => {
   return config
 })
 
-export const getAllProducts = async () => {
+export const getCart = async () => {
   try {
-    console.log("Fetching products from:", `${API_BASE_URL}/products`)
-    const response = await productAPI.get("/products")
+    console.log("Getting cart from:", `${API_BASE_URL}/api/cart`)
+    const response = await cartAPI.get("/api/cart")
     return response.data
   } catch (error) {
-    console.error("Error fetching products:", error)
-    return []
-  }
-}
-
-export const getProductById = async (id) => {
-  try {
-    console.log("Fetching product by ID from:", `${API_BASE_URL}/products/${id}`)
-    const response = await productAPI.get(`/products/${id}`)
-    return response.data
-  } catch (error) {
-    console.error(`Error fetching product ${id}:`, error)
+    console.error("Error fetching cart:", error)
     throw error
   }
 }
 
-export const createProduct = async (product) => {
+export const addToCart = async (productId, quantity = 1) => {
   try {
-    console.log("Creating product at:", `${API_BASE_URL}/products`)
-    const response = await productAPI.post("/products", product)
+    console.log("Adding to cart at:", `${API_BASE_URL}/api/cart/add`)
+    const response = await cartAPI.post("/api/cart/add", {
+      productId,
+      quantity,
+    })
     return response.data
   } catch (error) {
-    console.error("Error creating product:", error)
+    console.error("Error adding to cart:", error)
     throw error
   }
 }
 
-export const updateProduct = async (id, product) => {
+export const updateCartItem = async (productId, quantity) => {
   try {
-    console.log("Updating product at:", `${API_BASE_URL}/products/${id}`)
-    const response = await productAPI.put(`/products/${id}`, product)
+    console.log("Updating cart item at:", `${API_BASE_URL}/api/cart/update`)
+    const response = await cartAPI.put("/api/cart/update", {
+      productId,
+      quantity,
+    })
     return response.data
   } catch (error) {
-    console.error(`Error updating product ${id}:`, error)
+    console.error("Error updating cart item:", error)
     throw error
   }
 }
 
-export const deleteProduct = async (id) => {
+export const removeFromCart = async (productId) => {
   try {
-    console.log("Deleting product at:", `${API_BASE_URL}/products/${id}`)
-    await productAPI.delete(`/products/${id}`)
+    console.log("Removing from cart at:", `${API_BASE_URL}/api/cart/remove/${productId}`)
+    const response = await cartAPI.delete(`/api/cart/remove/${productId}`)
+    return response.data
   } catch (error) {
-    console.error(`Error deleting product ${id}:`, error)
+    console.error("Error removing from cart:", error)
     throw error
   }
 }
 
-export const filterProducts = async (filters) => {
+export const clearCart = async () => {
   try {
-    console.log("Filtering products at:", `${API_BASE_URL}/products/filter`)
-    const response = await productAPI.get("/products/filter", { params: filters })
+    console.log("Clearing cart at:", `${API_BASE_URL}/api/cart/clear`)
+    const response = await cartAPI.delete("/api/cart/clear")
     return response.data
   } catch (error) {
-    console.error("Error filtering products:", error)
-    return []
+    console.error("Error clearing cart:", error)
+    throw error
   }
 }
