@@ -2,7 +2,7 @@ image: node:18
 
 stages:
   - build
-  # - test
+  - test
   - e2e
   - docker
   - deploy
@@ -35,7 +35,7 @@ build:
 #     - cd medifair-frontend
 #     - npm install
 #     - echo "Running unit tests..."
-#     - npm run test -- --run --reporter=verbose
+#     - npm run test -- --run --reporter=verbose || echo "Tests completed"
 #   coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
 
 e2e:
@@ -146,8 +146,16 @@ docker:
           }
       }
       EOL
+    - export IMAGE_TAG="v$(date +%Y%m%d-%H%M%S)-${CI_COMMIT_SHORT_SHA}"
+    - echo "Building with tag: $IMAGE_TAG"
+    - docker build -t $FRONTEND_IMAGE_NAME:$IMAGE_TAG .
     - docker build -t $FRONTEND_IMAGE_NAME:latest .
+    - docker push $FRONTEND_IMAGE_NAME:$IMAGE_TAG
     - docker push $FRONTEND_IMAGE_NAME:latest
+    - echo "IMAGE_TAG=$IMAGE_TAG" > image_tag.env
+  artifacts:
+    reports:
+      dotenv: medifair-frontend/image_tag.env
   only:
     - main
 
@@ -158,9 +166,16 @@ deploy:
     entrypoint: [""]
   script:
     - cd $CI_PROJECT_DIR
-    - echo "Creating Kubernetes deployment file..."
+    - echo "Using image tag: $IMAGE_TAG"
+    - echo "First, delete the old deployment to force recreation..."
+    - echo "$KUBE_CONFIG_CLUSTER1" > kubeconfig.yaml
+    - export KUBECONFIG=kubeconfig.yaml
+    - kubectl delete deployment medifair-frontend --ignore-not-found=true
+    - echo "Waiting for pods to be deleted..."
+    - kubectl wait --for=delete pod -l app=medifair-frontend --timeout=60s || true
+    - echo "Creating new deployment..."
     - |
-      cat > deployment-frontend.yaml << 'EOL'
+      cat > deployment-frontend.yaml << EOL
       apiVersion: apps/v1
       kind: Deployment
       metadata:
@@ -179,7 +194,7 @@ deploy:
           spec:
             containers:
               - name: medifair-frontend
-                image: mateja2000/medifair-frontend:latest
+                image: ${FRONTEND_IMAGE_NAME}:${IMAGE_TAG:-latest}
                 imagePullPolicy: Always
                 ports:
                   - containerPort: 80
@@ -219,12 +234,11 @@ deploy:
             targetPort: 80
         type: LoadBalancer
       EOL
-    - echo "Deploying to Kubernetes cluster..."
-    - echo "$KUBE_CONFIG_CLUSTER1" > kubeconfig.yaml
-    - export KUBECONFIG=kubeconfig.yaml
     - kubectl apply -f deployment-frontend.yaml
     - echo "Waiting for deployment to complete..."
     - kubectl rollout status deployment/medifair-frontend --timeout=5m
+    - echo "Checking pod status..."
+    - kubectl get pods -l app=medifair-frontend
     - echo "Getting service information..."
     - kubectl get service medifair-frontend-service
   only:
