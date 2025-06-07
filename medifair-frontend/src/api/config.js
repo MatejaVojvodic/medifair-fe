@@ -20,8 +20,12 @@
 // console.log("Chat API URL:", CHAT_API_BASE_URL)
 // console.log("WebSocket URL:", WS_BASE_URL)
 
-// Determine if we're in production or development
-const isProduction = import.meta.env.PROD || window.location.hostname !== "localhost"
+// More robust environment detection
+const isProduction =
+  import.meta.env.PROD ||
+  (window.location.hostname !== "localhost" &&
+    window.location.hostname !== "127.0.0.1" &&
+    !window.location.hostname.includes("localhost"))
 
 // Set the base URLs based on environment
 export const API_BASE_URL = isProduction
@@ -36,8 +40,14 @@ export const WS_BASE_URL = isProduction
   ? "/ws" // Use nginx proxy in production
   : "ws://localhost:8081/ws"
 
+// Force production URLs if we detect we're on the production domain
+if (window.location.hostname === "159.223.240.149") {
+  console.log("Detected production domain - forcing production URLs")
+}
+
 // Log the environment and URLs for debugging
 console.log("Environment:", isProduction ? "production" : "development")
+console.log("Hostname:", window.location.hostname)
 console.log("API Base URL:", API_BASE_URL)
 console.log("Chat API URL:", CHAT_API_BASE_URL)
 console.log("WebSocket URL:", WS_BASE_URL)
