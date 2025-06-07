@@ -1,4 +1,4 @@
-"use client"
+//"use client"
 
 import ProductList from "../components/ProductList"
 import ProductFilter from "../components/ProductFilter.jsx"

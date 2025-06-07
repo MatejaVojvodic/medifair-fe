@@ -106,6 +106,13 @@ export const register = async (userData) => {
   try {
     console.log("Registering user with URL:", `${API_BASE_URL}/auth/register`)
     const response = await authAPI.post("/auth/register", userData)
+    
+    // Store the JWT token if received
+    if (response.data) {
+      localStorage.setItem("token", response.data)
+      setAuthHeader(response.data)
+    }
+    
     return response.data
   } catch (error) {
     console.error("Registration error:", error)
@@ -121,13 +128,23 @@ export const login = async (userData) => {
     // Store the JWT token in localStorage
     if (response.data) {
       localStorage.setItem("token", response.data)
-      // Set the token in axios default headers for future requests
       setAuthHeader(response.data)
     }
 
     return response.data
   } catch (error) {
     console.error("Login error:", error)
+    throw error
+  }
+}
+
+export const getCurrentUser = async () => {
+  try {
+    console.log("Getting current user with URL:", `${API_BASE_URL}/api/users/profile`)
+    const response = await authAPI.get("/api/users/profile")
+    return response.data
+  } catch (error) {
+    console.error("Get current user error:", error)
     throw error
   }
 }
@@ -160,6 +177,11 @@ export const getAuthToken = () => {
   return localStorage.getItem("token")
 }
 
+export const removeAuthToken = () => {
+  localStorage.removeItem("token")
+  setAuthHeader(null)
+}
+
 export const initializeAuth = () => {
   const token = getToken()
   if (token) {
@@ -170,12 +192,10 @@ export const initializeAuth = () => {
 }
 
 export const setupAuthInterceptor = () => {
-  // Set up axios interceptors for handling token expiration, etc.
   authAPI.interceptors.response.use(
     (response) => response,
     (error) => {
       if (error.response && error.response.status === 401) {
-        // Token expired or invalid
         logout()
         window.location.href = "/login"
       }
@@ -183,7 +203,6 @@ export const setupAuthInterceptor = () => {
     },
   )
 
-  // Initialize auth header from stored token
   const token = getToken()
   if (token) {
     setAuthHeader(token)

@@ -128,28 +128,33 @@
 //   return context
 // }
 
-"use client"
-
 import { createContext, useState, useEffect, useContext } from "react"
 import { getCart, addToCart, updateCartItem, removeFromCart, clearCart } from "../api/cartService.js"
+import { useAuth } from "./AuthContext"
 
 const CartContext = createContext()
-
-export const useCart = () => {
-  return useContext(CartContext)
-}
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState({ items: [], totalPrice: 0 })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const { isLoggedIn } = useAuth()
+
+  // Load cart when user is logged in
+  useEffect(() => {
+    if (isLoggedIn) {
+      loadCart()
+    } else {
+      setCart({ items: [], totalPrice: 0 })
+    }
+  }, [isLoggedIn])
 
   const loadCart = async () => {
     try {
       setIsLoading(true)
       setError("")
-      const fetchedCart = await getCart()
-      setCart(fetchedCart)
+      const cartData = await getCart()
+      setCart(cartData)
     } catch (err) {
       setError("Failed to load cart")
       console.error("Error loading cart:", err)
@@ -158,15 +163,11 @@ export const CartProvider = ({ children }) => {
     }
   }
 
-  useEffect(() => {
-    loadCart()
-  }, [])
-
   const handleAddToCart = async (productId, quantity = 1) => {
     try {
       setIsLoading(true)
       setError("")
-      const updatedCart = await addToCart(productId, quantity)
+      const updatedCart = await addToCart({ productId, quantity })
       setCart(updatedCart)
       return { success: true }
     } catch (err) {
@@ -230,15 +231,29 @@ export const CartProvider = ({ children }) => {
     }
   }
 
+  const getCartItemCount = () => {
+    return cart.items.reduce((total, item) => total + item.quantity, 0)
+  }
+
   const value = {
     cart,
     isLoading,
     error,
+    loadCart,
     addToCart: handleAddToCart,
     updateCartItem: handleUpdateCartItem,
     removeFromCart: handleRemoveFromCart,
     clearCart: handleClearCart,
+    getCartItemCount,
   }
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
+}
+
+export const useCart = () => {
+  const context = useContext(CartContext)
+  if (!context) {
+    throw new Error("useCart must be used within a CartProvider")
+  }
+  return context
 }

@@ -1,5 +1,5 @@
 import { createContext, useState, useContext } from "react"
-import { checkout, getUserOrders, getOrderById } from "../api/orderService"
+import { checkout, getUserOrders, getOrderById } from "../api/orderService.js"
 import { useAuth } from "./AuthContext"
 
 const OrderContext = createContext()

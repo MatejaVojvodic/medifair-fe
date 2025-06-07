@@ -218,7 +218,7 @@
 import axios from "axios"
 import { CHAT_API_BASE_URL, WS_BASE_URL } from "./config.js"
 
-// Create axios instance for chat
+// Create axios instance with base URL
 const chatAPI = axios.create({
   baseURL: CHAT_API_BASE_URL,
   timeout: 10000,
@@ -227,15 +227,22 @@ const chatAPI = axios.create({
   },
 })
 
-// Add auth interceptor
-chatAPI.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token")
+// Set auth token for chat API
+export const setChatAuthHeader = (token) => {
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+    chatAPI.defaults.headers.common["Authorization"] = `Bearer ${token}`
+  } else {
+    delete chatAPI.defaults.headers.common["Authorization"]
   }
-  return config
-})
+}
 
+// Initialize auth header from stored token
+const token = localStorage.getItem("token")
+if (token) {
+  setChatAuthHeader(token)
+}
+
+// Get all chat rooms for current user
 export const getChatRooms = async () => {
   try {
     console.log("Getting chat rooms from:", `${CHAT_API_BASE_URL}/api/chat/rooms`)
@@ -247,13 +254,26 @@ export const getChatRooms = async () => {
   }
 }
 
-export const createChatRoom = async (participantIds, roomName) => {
+// Alias for getChatRooms to maintain compatibility with existing code
+export const getUserChatRooms = getChatRooms
+
+// Get messages for a specific chat room
+export const getChatMessages = async (roomId) => {
   try {
-    console.log("Creating chat room at:", `${CHAT_API_BASE_URL}/api/chat/rooms`)
-    const response = await chatAPI.post("/api/chat/rooms", {
-      participantIds,
-      name: roomName,
-    })
+    console.log("Getting chat messages from:", `${CHAT_API_BASE_URL}/api/chat/rooms/${roomId}/messages`)
+    const response = await chatAPI.get(`/api/chat/rooms/${roomId}/messages`)
+    return response.data
+  } catch (error) {
+    console.error("Error fetching chat messages:", error)
+    throw error
+  }
+}
+
+// Create a new chat room
+export const createChatRoom = async (receiverUsername) => {
+  try {
+    console.log("Creating chat room with:", `${CHAT_API_BASE_URL}/api/chat/rooms/create`)
+    const response = await chatAPI.post("/api/chat/rooms/create", { receiverUsername })
     return response.data
   } catch (error) {
     console.error("Error creating chat room:", error)
@@ -261,22 +281,14 @@ export const createChatRoom = async (participantIds, roomName) => {
   }
 }
 
-export const getChatMessages = async (roomId) => {
+// Send a message via HTTP API
+export const sendMessage = async (receiverUsername, content, type = "TEXT") => {
   try {
-    console.log("Getting messages from:", `${CHAT_API_BASE_URL}/api/chat/rooms/${roomId}/messages`)
-    const response = await chatAPI.get(`/api/chat/rooms/${roomId}/messages`)
-    return response.data
-  } catch (error) {
-    console.error("Error fetching messages:", error)
-    throw error
-  }
-}
-
-export const sendMessage = async (roomId, content) => {
-  try {
-    console.log("Sending message to:", `${CHAT_API_BASE_URL}/api/chat/rooms/${roomId}/messages`)
-    const response = await chatAPI.post(`/api/chat/rooms/${roomId}/messages`, {
+    console.log("Sending message to:", `${CHAT_API_BASE_URL}/api/chat/send`)
+    const response = await chatAPI.post("/api/chat/send", {
+      receiverUsername,
       content,
+      type,
     })
     return response.data
   } catch (error) {
@@ -285,42 +297,77 @@ export const sendMessage = async (roomId, content) => {
   }
 }
 
+// Get available users to chat with
 export const getAvailableUsers = async () => {
   try {
     console.log("Getting available users from:", `${CHAT_API_BASE_URL}/api/chat/users`)
     const response = await chatAPI.get("/api/chat/users")
     return response.data
   } catch (error) {
-    console.error("Error fetching users:", error)
+    console.error("Error fetching available users:", error)
     throw error
   }
 }
 
-// WebSocket connection
-export const connectWebSocket = (roomId, onMessage) => {
-  const token = localStorage.getItem("token")
-  const wsUrl = `${WS_BASE_URL}?token=${token}&roomId=${roomId}`
-
-  console.log("Connecting to WebSocket:", wsUrl)
-
-  const ws = new WebSocket(wsUrl)
-
-  ws.onopen = () => {
-    console.log("WebSocket connected")
+// Get available users from main service (fallback)
+export const getAvailableUsersFromMain = async () => {
+  try {
+    // Import userService to avoid circular dependency
+    const { getAvailableUsersFromMain: getUsersFromMain } = await import("./userService.js")
+    return await getUsersFromMain()
+  } catch (error) {
+    console.error("Error fetching users from main service:", error)
+    return []
   }
+}
 
-  ws.onmessage = (event) => {
-    const message = JSON.parse(event.data)
-    onMessage(message)
+// Cleanup duplicate users
+export const cleanupDuplicateUsers = async () => {
+  try {
+    console.log("Cleaning up duplicate users:", `${CHAT_API_BASE_URL}/api/chat/cleanup-duplicates`)
+    const response = await chatAPI.post("/api/chat/cleanup-duplicates")
+    return response.data
+  } catch (error) {
+    console.error("Error cleaning up duplicate users:", error)
+    // Don't throw error, just log it
+    return { message: "Cleanup attempted" }
   }
+}
 
-  ws.onerror = (error) => {
-    console.error("WebSocket error:", error)
+// Mark messages as read
+export const markMessagesAsRead = async (roomId) => {
+  try {
+    console.log("Marking messages as read:", `${CHAT_API_BASE_URL}/api/chat/rooms/${roomId}/read`)
+    const response = await chatAPI.post(`/api/chat/rooms/${roomId}/read`)
+    return response.data
+  } catch (error) {
+    console.error("Error marking messages as read:", error)
+    throw error
   }
+}
 
-  ws.onclose = () => {
-    console.log("WebSocket disconnected")
+// Get unread message count
+export const getUnreadMessageCount = async (roomId) => {
+  try {
+    if (roomId) {
+      console.log(
+        "Getting unread message count for room:",
+        `${CHAT_API_BASE_URL}/api/chat/rooms/${roomId}/unread-count`,
+      )
+      const response = await chatAPI.get(`/api/chat/rooms/${roomId}/unread-count`)
+      return response.data
+    } else {
+      console.log("Getting total unread message count:", `${CHAT_API_BASE_URL}/api/chat/messages/unread/count`)
+      const response = await chatAPI.get("/api/chat/messages/unread/count")
+      return response.data
+    }
+  } catch (error) {
+    console.error("Error fetching unread message count:", error)
+    return 0 // Return 0 as a fallback
   }
+}
 
-  return ws
+// Get WebSocket URL for chat
+export const getWebSocketUrl = () => {
+  return `${WS_BASE_URL}/chat?token=${localStorage.getItem("token")}`
 }

@@ -52,10 +52,11 @@ cartAPI.interceptors.request.use((config) => {
   return config
 })
 
+// Get the current user's cart
 export const getCart = async () => {
   try {
-    console.log("Getting cart from:", `${API_BASE_URL}/api/cart`)
-    const response = await cartAPI.get("/api/cart")
+    console.log("Getting cart from:", `${API_BASE_URL}/cart`)
+    const response = await cartAPI.get("/cart")
     return response.data
   } catch (error) {
     console.error("Error fetching cart:", error)
@@ -63,13 +64,11 @@ export const getCart = async () => {
   }
 }
 
-export const addToCart = async (productId, quantity = 1) => {
+// Add an item to the cart
+export const addToCart = async (cartItemData) => {
   try {
-    console.log("Adding to cart at:", `${API_BASE_URL}/api/cart/add`)
-    const response = await cartAPI.post("/api/cart/add", {
-      productId,
-      quantity,
-    })
+    console.log("Adding to cart at:", `${API_BASE_URL}/cart/items`)
+    const response = await cartAPI.post("/cart/items", cartItemData)
     return response.data
   } catch (error) {
     console.error("Error adding to cart:", error)
@@ -77,13 +76,11 @@ export const addToCart = async (productId, quantity = 1) => {
   }
 }
 
+// Update a cart item's quantity
 export const updateCartItem = async (productId, quantity) => {
   try {
-    console.log("Updating cart item at:", `${API_BASE_URL}/api/cart/update`)
-    const response = await cartAPI.put("/api/cart/update", {
-      productId,
-      quantity,
-    })
+    console.log("Updating cart item at:", `${API_BASE_URL}/cart/items/${productId}?quantity=${quantity}`)
+    const response = await cartAPI.put(`/cart/items/${productId}?quantity=${quantity}`)
     return response.data
   } catch (error) {
     console.error("Error updating cart item:", error)
@@ -91,10 +88,11 @@ export const updateCartItem = async (productId, quantity) => {
   }
 }
 
+// Remove an item from the cart
 export const removeFromCart = async (productId) => {
   try {
-    console.log("Removing from cart at:", `${API_BASE_URL}/api/cart/remove/${productId}`)
-    const response = await cartAPI.delete(`/api/cart/remove/${productId}`)
+    console.log("Removing from cart at:", `${API_BASE_URL}/cart/items/${productId}`)
+    const response = await cartAPI.delete(`/cart/items/${productId}`)
     return response.data
   } catch (error) {
     console.error("Error removing from cart:", error)
@@ -102,10 +100,11 @@ export const removeFromCart = async (productId) => {
   }
 }
 
+// Clear the entire cart
 export const clearCart = async () => {
   try {
-    console.log("Clearing cart at:", `${API_BASE_URL}/api/cart/clear`)
-    const response = await cartAPI.delete("/api/cart/clear")
+    console.log("Clearing cart at:", `${API_BASE_URL}/cart`)
+    const response = await cartAPI.delete("/cart")
     return response.data
   } catch (error) {
     console.error("Error clearing cart:", error)

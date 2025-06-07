@@ -65,10 +65,13 @@ export const updateUserProfile = async (profileData) => {
   }
 }
 
+// Alias for Profile.jsx compatibility
+export const updateProfile = updateUserProfile
+
 export const changePassword = async (passwordData) => {
   try {
     console.log("Changing password at:", `${API_BASE_URL}/api/users/change-password`)
-    const response = await userAPI.put("/api/users/change-password", passwordData)
+    const response = await userAPI.post("/api/users/change-password", passwordData)
     return response.data
   } catch (error) {
     console.error("Error changing password:", error)
@@ -76,13 +79,37 @@ export const changePassword = async (passwordData) => {
   }
 }
 
+export const deleteAccount = async () => {
+  try {
+    console.log("Deleting account at:", `${API_BASE_URL}/api/users/account`)
+    const response = await userAPI.delete("/api/users/account")
+    return response.data
+  } catch (error) {
+    console.error("Error deleting account:", error)
+    throw error
+  }
+}
+
 export const getAllUsers = async () => {
   try {
-    console.log("Getting all users from:", `${API_BASE_URL}/api/users`)
-    const response = await userAPI.get("/api/users")
+    console.log("Getting all users from:", `${API_BASE_URL}/api/users/all`)
+    const response = await userAPI.get("/api/users/all")
     return response.data
   } catch (error) {
     console.error("Error fetching users:", error)
     throw error
+  }
+}
+
+// Get users for chat functionality
+export const getAvailableUsersFromMain = async () => {
+  try {
+    console.log("Getting available users from main service:", `${API_BASE_URL}/api/users/for-chat`)
+    const response = await userAPI.get("/api/users/for-chat")
+    return response.data
+  } catch (error) {
+    console.error("Error fetching available users:", error)
+    // Fallback to getAllUsers if the specific endpoint doesn't exist
+    return await getAllUsers()
   }
 }

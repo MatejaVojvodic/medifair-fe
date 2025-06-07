@@ -1,39 +1,21 @@
-// Environment detection
-const isDevelopment = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-const isProduction = !isDevelopment
+// Determine if we're in production or development
+const isProduction = import.meta.env.PROD || window.location.hostname !== "localhost"
 
-// Base URLs for different environments
-const config = {
-  development: {
-    MAIN_API_URL: "http://localhost:8080",
-    CHAT_API_URL: "http://localhost:8081",
-    WS_URL: "ws://localhost:8081/ws/chat",
-  },
-  production: {
-    MAIN_API_URL: "http://167.99.17.26",
-    CHAT_API_URL: "http://209.38.52.45",
-    WS_URL: "ws://209.38.52.45/ws/chat",
-  },
-}
+// Set the base URLs based on environment
+export const API_BASE_URL = isProduction
+  ? "http://167.99.17.26" // Direct connection to backend service
+  : "http://localhost:8080"
 
-// Get current environment config
-const currentConfig = isDevelopment ? config.development : config.production
+export const CHAT_API_BASE_URL = isProduction
+  ? "http://209.38.52.45" // Direct connection to chat service
+  : "http://localhost:8081"
 
-// Export the URLs
-export const API_BASE_URL = currentConfig.MAIN_API_URL
-export const CHAT_API_BASE_URL = currentConfig.CHAT_API_URL
-export const WS_BASE_URL = currentConfig.WS_URL
+export const WS_BASE_URL = isProduction
+  ? "ws://209.38.52.45/ws" // WebSocket connection to chat service
+  : "ws://localhost:8081/ws"
 
-// Debug logging
-console.log("Environment:", isDevelopment ? "development" : "production")
+// Log the environment and URLs for debugging
+console.log("Environment:", isProduction ? "production" : "development")
 console.log("API Base URL:", API_BASE_URL)
 console.log("Chat API URL:", CHAT_API_BASE_URL)
 console.log("WebSocket URL:", WS_BASE_URL)
-
-export default {
-  API_BASE_URL,
-  CHAT_API_BASE_URL,
-  WS_BASE_URL,
-  isDevelopment,
-  isProduction,
-}

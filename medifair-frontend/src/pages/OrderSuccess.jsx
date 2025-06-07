@@ -1,4 +1,4 @@
-"use client"
+//"use client"
 
 import { useLocation, useNavigate } from "react-router-dom"
 import "../assets/styles/order.css"
