@@ -4,6 +4,7 @@ stages:
   - build
   # - test
   - e2e
+  - security_checks
   - docker
   - deploy
 
@@ -35,8 +36,7 @@ build:
 #     - cd medifair-frontend
 #     - npm install
 #     - echo "Running unit tests..."
-#     - npm run test -- --run --reporter=verbose || echo "Tests completed"
-#   coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+#     - npm run test:unit || echo "Unit tests completed"
 
 e2e:
   stage: e2e
@@ -45,6 +45,22 @@ e2e:
     - npm install
     - echo "Running E2E tests..."
     - npm run test:e2e || echo "E2E tests completed"
+  artifacts:
+    when: always
+    paths:
+      - medifair-frontend/cypress/screenshots/
+      - medifair-frontend/cypress/videos/
+    expire_in: 1 week
+
+security_checks:
+  stage: security_checks
+  script:
+    - cd medifair-frontend
+    - npm install
+    - echo "Running security audit..."
+    - npm audit --audit-level=high || echo "Security audit completed"
+    - echo "Checking for vulnerabilities..."
+    - npm run security:check || echo "Security check completed"
 
 docker:
   stage: docker
@@ -57,6 +73,8 @@ docker:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   script:
     - cd medifair-frontend
+    - export IMAGE_TAG="v$(date +%Y%m%d-%H%M%S)-${CI_COMMIT_SHORT_SHA}"
+    - echo "IMAGE_TAG=$IMAGE_TAG" > image_tag.env
     - echo "Creating Dockerfile..."
     - |
       cat > Dockerfile << 'EOF'
@@ -75,9 +93,11 @@ docker:
           root /usr/share/nginx/html;
           index index.html;
           
+          # Enable gzip compression
           gzip on;
           gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
           
+          # Handle React Router
           location / {
               try_files $uri $uri/ /index.html;
               add_header Cache-Control "no-cache, no-store, must-revalidate";
@@ -85,6 +105,7 @@ docker:
               add_header Expires "0";
           }
           
+          # Proxy requests to main backend - FIXED ROUTING
           location /api/ {
               proxy_pass http://167.99.17.26/;
               proxy_set_header Host $host;
@@ -94,12 +115,26 @@ docker:
               proxy_connect_timeout 30s;
               proxy_send_timeout 30s;
               proxy_read_timeout 30s;
+              
+              # Add CORS headers
               add_header 'Access-Control-Allow-Origin' '*' always;
               add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
               add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
               add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range' always;
+              
+              # Handle preflight requests
+              if ($request_method = 'OPTIONS') {
+                  add_header 'Access-Control-Allow-Origin' '*';
+                  add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+                  add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization';
+                  add_header 'Access-Control-Max-Age' 1728000;
+                  add_header 'Content-Type' 'text/plain; charset=utf-8';
+                  add_header 'Content-Length' 0;
+                  return 204;
+              }
           }
           
+          # Proxy requests to chat service
           location /api/chat/ {
               proxy_pass http://209.38.52.45/api/chat/;
               proxy_set_header Host $host;
@@ -109,12 +144,14 @@ docker:
               proxy_connect_timeout 30s;
               proxy_send_timeout 30s;
               proxy_read_timeout 30s;
+              
+              # Add CORS headers
               add_header 'Access-Control-Allow-Origin' '*' always;
               add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
               add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
-              add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range' always;
           }
           
+          # WebSocket support for chat
           location /ws/ {
               proxy_pass http://209.38.52.45/ws/;
               proxy_http_version 1.1;
@@ -129,6 +166,7 @@ docker:
               proxy_read_timeout 7d;
           }
           
+          # Health check endpoint
           location /health {
               access_log off;
               return 200 "healthy\n";
@@ -136,13 +174,10 @@ docker:
           }
       }
       EOF
-    - export IMAGE_TAG="v$(date +%Y%m%d-%H%M%S)-${CI_COMMIT_SHORT_SHA}"
-    - echo "Building with tag $IMAGE_TAG"
     - docker build -t $FRONTEND_IMAGE_NAME:$IMAGE_TAG .
-    - docker build -t $FRONTEND_IMAGE_NAME:latest .
     - docker push $FRONTEND_IMAGE_NAME:$IMAGE_TAG
+    - docker tag $FRONTEND_IMAGE_NAME:$IMAGE_TAG $FRONTEND_IMAGE_NAME:latest
     - docker push $FRONTEND_IMAGE_NAME:latest
-    - echo "IMAGE_TAG=$IMAGE_TAG" > image_tag.env
   artifacts:
     reports:
       dotenv: medifair-frontend/image_tag.env
