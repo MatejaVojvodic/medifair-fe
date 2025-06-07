@@ -3,11 +3,11 @@ const isProduction = import.meta.env.PROD || window.location.hostname !== "local
 
 // Set the base URLs based on environment
 export const API_BASE_URL = isProduction
-  ? "http://167.99.17.26" // Direct connection to backend service
+  ? "http://167.99.17.26" // Your actual backend server IP
   : "http://localhost:8080"
 
 export const CHAT_API_BASE_URL = isProduction
-  ? "http://209.38.52.45" // Direct connection to chat service
+  ? "http://209.38.52.45" // Your actual chat server IP
   : "http://localhost:8081"
 
 export const WS_BASE_URL = isProduction
@@ -19,3 +19,4 @@ console.log("Environment:", isProduction ? "production" : "development")
 console.log("API Base URL:", API_BASE_URL)
 console.log("Chat API URL:", CHAT_API_BASE_URL)
 console.log("WebSocket URL:", WS_BASE_URL)
+

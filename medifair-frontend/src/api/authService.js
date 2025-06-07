@@ -105,17 +105,19 @@ const authAPI = axios.create({
 export const register = async (userData) => {
   try {
     console.log("Registering user with URL:", `${API_BASE_URL}/auth/register`)
+    console.log("User data:", userData)
     const response = await authAPI.post("/auth/register", userData)
-    
+
     // Store the JWT token if received
     if (response.data) {
       localStorage.setItem("token", response.data)
       setAuthHeader(response.data)
     }
-    
+
     return response.data
   } catch (error) {
     console.error("Registration error:", error)
+    console.error("Error response:", error.response?.data)
     throw error
   }
 }
@@ -123,6 +125,7 @@ export const register = async (userData) => {
 export const login = async (userData) => {
   try {
     console.log("Logging in user with URL:", `${API_BASE_URL}/auth/login`)
+    console.log("Login data:", userData)
     const response = await authAPI.post("/auth/login", userData)
 
     // Store the JWT token in localStorage
@@ -134,6 +137,7 @@ export const login = async (userData) => {
     return response.data
   } catch (error) {
     console.error("Login error:", error)
+    console.error("Error response:", error.response?.data)
     throw error
   }
 }
