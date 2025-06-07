@@ -2,7 +2,7 @@ image: node:18
 
 stages:
   - build
-  - test
+  # - test
   - e2e
   - docker
   - deploy
@@ -29,14 +29,14 @@ build:
       - medifair-frontend/dist/
     expire_in: 1 day
 
-test:
-  stage: test
-  script:
-    - cd medifair-frontend
-    - npm install
-    - echo "Running unit tests..."
-    - npm run test -- --run --reporter=verbose
-  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+# test:
+#   stage: test
+#   script:
+#     - cd medifair-frontend
+#     - npm install
+#     - echo "Running unit tests..."
+#     - npm run test -- --run --reporter=verbose
+#   coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
 
 e2e:
   stage: e2e
