@@ -126,10 +126,11 @@
 
 //"use client"
 
+
 import { useState } from "react"
-import { useNavigate, useLocation } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
-import { login } from "../api/authService"
+import "../assets/styles/auth.css"
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -139,8 +140,7 @@ const Login = () => {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
-  const location = useLocation()
-  const { login: authLogin } = useAuth()
+  const { login } = useAuth()
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -149,37 +149,17 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    // Prevent double submission
-    if (isLoading) {
-      console.log("Login already in progress...")
-      return
-    }
+    if (isLoading) return
 
     setIsLoading(true)
     setError("")
 
     try {
-      console.log("Login form: Submitting with data:", { username: formData.username })
-
-      // Validate form data
-      if (!formData.username || !formData.password) {
-        throw new Error("Username and password are required")
-      }
-
-      // Call the login API ONCE
-      const token = await login(formData)
-      console.log("Login form: Token received from API")
-
-      // Update auth context with token (this should NOT call login API again)
-      await authLogin(token)
-      console.log("Login form: Auth context updated")
-
-      // Redirect to products page
-      console.log("Login form: Redirecting to products")
+      await login(formData)
       navigate("/")
     } catch (err) {
-      console.error("Login form: Error occurred:", err)
-      setError(err.response?.data?.message || err.message || "Login failed. Please check your credentials.")
+      console.error("Login error:", err)
+      setError(err.response?.data?.message || err.message || "Login failed")
     } finally {
       setIsLoading(false)
     }
@@ -209,6 +189,3 @@ const Login = () => {
 }
 
 export default Login
-
-
-

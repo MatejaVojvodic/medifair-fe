@@ -121,10 +121,14 @@
 //   return context
 // }
 
-"use client"
-
 import { createContext, useContext, useState, useEffect } from "react"
-import { getCurrentUser, logout as logoutService, initializeAuth } from "../api/authService"
+import {
+  login as loginService,
+  register as registerService,
+  getCurrentUser,
+  logout as logoutService,
+  initializeAuth,
+} from "../api/authService"
 
 const AuthContext = createContext()
 
@@ -139,7 +143,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
     const initAuth = async () => {
@@ -151,14 +155,14 @@ export const AuthProvider = ({ children }) => {
           // Try to get current user to verify token is valid
           const userData = await getCurrentUser()
           setUser(userData)
-          setIsAuthenticated(true)
+          setIsLoggedIn(true)
         }
       } catch (error) {
         console.error("Auth initialization failed:", error)
         // Token might be invalid, clear it
         logoutService()
         setUser(null)
-        setIsAuthenticated(false)
+        setIsLoggedIn(false)
       } finally {
         setLoading(false)
       }
@@ -167,44 +171,42 @@ export const AuthProvider = ({ children }) => {
     initAuth()
   }, [])
 
-  // ✅ FIXED: This function should only process the token, not call login API again
-  const login = async (token) => {
+  const login = async (credentials) => {
     try {
       setLoading(true)
-
-      console.log("AuthContext: Processing login with token")
+      const token = await loginService(credentials)
 
       // Get user data after successful login
       const userData = await getCurrentUser()
       setUser(userData)
-      setIsAuthenticated(true)
+      setIsLoggedIn(true)
 
-      console.log("AuthContext: Login completed successfully")
       return { success: true, token }
     } catch (error) {
-      console.error("AuthContext: Login failed:", error)
+      console.error("Login failed:", error)
       setUser(null)
-      setIsAuthenticated(false)
+      setIsLoggedIn(false)
       throw error
     } finally {
       setLoading(false)
     }
   }
 
-  const register = async (token) => {
+  const register = async (userData) => {
     try {
       setLoading(true)
+      const token = await registerService(userData)
 
       // Get user data after successful registration
       const userProfile = await getCurrentUser()
       setUser(userProfile)
-      setIsAuthenticated(true)
+      setIsLoggedIn(true)
 
       return { success: true, token }
     } catch (error) {
       console.error("Registration failed:", error)
       setUser(null)
-      setIsAuthenticated(false)
+      setIsLoggedIn(false)
       throw error
     } finally {
       setLoading(false)
@@ -214,7 +216,11 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     logoutService()
     setUser(null)
-    setIsAuthenticated(false)
+    setIsLoggedIn(false)
+  }
+
+  const isAdmin = () => {
+    return user?.roles?.includes("ADMIN") || false
   }
 
   const value = {
@@ -223,10 +229,12 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     loading,
-    isAuthenticated,
+    isLoggedIn,
+    isLoading: loading,
+    username: user?.username,
+    isAdmin,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
-
 
