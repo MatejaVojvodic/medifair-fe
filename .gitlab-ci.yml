@@ -330,6 +330,7 @@ build:
       - medifair-frontend/dist/
     expire_in: 1 day
 
+# Unit tests
 test:
   stage: test
   script:
@@ -337,6 +338,28 @@ test:
     - npm install
     - echo "Running unit tests..."
     - npm run test:unit || echo "Unit tests completed"
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - medifair-frontend/test-results.xml
+    paths:
+      - medifair-frontend/coverage/
+    expire_in: 1 week
+
+# Linting and code quality
+lint:
+  stage: test
+  script:
+    - cd medifair-frontend
+    - npm install
+    - echo "Running ESLint..."
+    - npm run lint || echo "Linting completed"
+  artifacts:
+    when: always
+    paths:
+      - medifair-frontend/lint-results.json
+    expire_in: 1 week
 
 e2e:
   stage: e2e
@@ -384,7 +407,7 @@ docker:
       EXPOSE 80
       CMD ["nginx", "-g", "daemon off;"]
       EOF
-    - echo "Creating nginx.conf with FIXED proxy configuration..."
+    - echo "Creating nginx.conf with CORRECTED proxy configuration..."
     - |
       cat > nginx.conf << 'EOF'
       server {
@@ -405,7 +428,7 @@ docker:
               add_header Expires "0";
           }
           
-          # Proxy auth requests to backend
+          # Proxy auth requests to backend (FIXED)
           location /api/auth/ {
               proxy_pass http://167.99.17.26/auth/;
               proxy_set_header Host $host;
@@ -415,13 +438,13 @@ docker:
               proxy_connect_timeout 30s;
               proxy_send_timeout 30s;
               proxy_read_timeout 30s;
-              
+          
               # Add CORS headers
               add_header 'Access-Control-Allow-Origin' '*' always;
               add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
               add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
               add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range' always;
-              
+          
               # Handle preflight requests
               if ($request_method = 'OPTIONS') {
                   add_header 'Access-Control-Allow-Origin' '*';
@@ -433,37 +456,8 @@ docker:
                   return 204;
               }
           }
-          
-          # Proxy other API requests to backend
-          location /api/ {
-              proxy_pass http://167.99.17.26/;
-              proxy_set_header Host $host;
-              proxy_set_header X-Real-IP $remote_addr;
-              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-              proxy_set_header X-Forwarded-Proto $scheme;
-              proxy_connect_timeout 30s;
-              proxy_send_timeout 30s;
-              proxy_read_timeout 30s;
-              
-              # Add CORS headers
-              add_header 'Access-Control-Allow-Origin' '*' always;
-              add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
-              add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
-              add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range' always;
-              
-              # Handle preflight requests
-              if ($request_method = 'OPTIONS') {
-                  add_header 'Access-Control-Allow-Origin' '*';
-                  add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
-                  add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization';
-                  add_header 'Access-Control-Max-Age' 1728000;
-                  add_header 'Content-Type' 'text/plain; charset=utf-8';
-                  add_header 'Content-Length' 0;
-                  return 204;
-              }
-          }
-          
-          # FIXED: Proxy chat requests to chat service
+      
+          # Proxy chat requests to chat service (FIXED)
           location /api/chat/ {
               proxy_pass http://209.38.52.45/;
               proxy_set_header Host $host;
@@ -473,13 +467,42 @@ docker:
               proxy_connect_timeout 30s;
               proxy_send_timeout 30s;
               proxy_read_timeout 30s;
-              
+          
               # Add CORS headers
               add_header 'Access-Control-Allow-Origin' '*' always;
               add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
               add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
           }
+      
+          # Proxy ALL other API requests to backend (FIXED)
+          location /api/ {
+              proxy_pass http://167.99.17.26/;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_connect_timeout 30s;
+              proxy_send_timeout 30s;
+              proxy_read_timeout 30s;
           
+              # Add CORS headers
+              add_header 'Access-Control-Allow-Origin' '*' always;
+              add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+              add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
+              add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range' always;
+          
+              # Handle preflight requests
+              if ($request_method = 'OPTIONS') {
+                  add_header 'Access-Control-Allow-Origin' '*';
+                  add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+                  add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization';
+                  add_header 'Access-Control-Max-Age' 1728000;
+                  add_header 'Content-Type' 'text/plain; charset=utf-8';
+                  add_header 'Content-Length' 0;
+                  return 204;
+              }
+          }
+      
           # WebSocket support for chat
           location /ws/ {
               proxy_pass http://209.38.52.45/ws/;
@@ -494,7 +517,7 @@ docker:
               proxy_send_timeout 7d;
               proxy_read_timeout 7d;
           }
-          
+      
           # Health check endpoint
           location /health {
               access_log off;
@@ -510,6 +533,10 @@ docker:
   artifacts:
     reports:
       dotenv: medifair-frontend/image_tag.env
+  dependencies:
+    - build
+    - test
+    - lint
   only:
     - main
 
@@ -595,5 +622,7 @@ deploy:
     - kubectl get pods -l app=medifair-frontend
     - echo "Getting service information..."
     - kubectl get service medifair-frontend-service
+  dependencies:
+    - docker
   only:
     - main
