@@ -262,14 +262,15 @@ export const register = async (userData) => {
     console.log("User data:", userData)
     const response = await authAPI.post("/auth/register", userData)
 
-    // Store the JWT token if received
-    const { token } = response.data
-    if (token) {
+    // Backend returns token directly as string in response.data
+    const token = response.data // ✅ FIXED: Token is directly in response.data
+    if (token && typeof token === "string") {
       localStorage.setItem("authToken", token)
       console.log("Registration successful, token stored")
       return token
     } else {
-      throw new Error("No token received from server")
+      console.error("Invalid token received:", token)
+      throw new Error("No valid token received from server")
     }
   } catch (error) {
     console.error("Registration error:", error)
@@ -282,13 +283,15 @@ export const login = async (credentials) => {
     console.log("Attempting login with:", credentials.username)
     const response = await authAPI.post("/auth/login", credentials)
 
-    const { token } = response.data
-    if (token) {
+    // Backend returns token directly as string in response.data
+    const token = response.data // ✅ FIXED: Token is directly in response.data
+    if (token && typeof token === "string") {
       localStorage.setItem("authToken", token)
       console.log("Login successful, token stored")
       return token
     } else {
-      throw new Error("No token received from server")
+      console.error("Invalid token received:", token)
+      throw new Error("No valid token received from server")
     }
   } catch (error) {
     console.error("Login error:", error)
@@ -298,7 +301,7 @@ export const login = async (credentials) => {
 
 export const getCurrentUser = async () => {
   try {
-    const url = "/users/profile" // ✅ FIXED: Remove /api/ prefix
+    const url = "/users/profile"
     console.log("Getting current user with URL:", API_BASE_URL + url)
     const response = await authAPI.get(url)
     return response.data
@@ -310,7 +313,7 @@ export const getCurrentUser = async () => {
 
 export const updateProfile = async (profileData) => {
   try {
-    const response = await authAPI.put("/users/profile", profileData) // ✅ FIXED
+    const response = await authAPI.put("/users/profile", profileData)
     return response.data
   } catch (error) {
     console.error("Error updating profile:", error)
@@ -320,7 +323,7 @@ export const updateProfile = async (profileData) => {
 
 export const changePassword = async (passwordData) => {
   try {
-    const response = await authAPI.put("/users/change-password", passwordData) // ✅ FIXED
+    const response = await authAPI.put("/users/change-password", passwordData)
     return response.data
   } catch (error) {
     console.error("Error changing password:", error)
@@ -330,7 +333,7 @@ export const changePassword = async (passwordData) => {
 
 export const deleteAccount = async () => {
   try {
-    const url = "/users/account" // ✅ FIXED: Remove /api/ prefix
+    const url = "/users/account"
     console.log("Deleting account at:", API_BASE_URL + url)
     const response = await authAPI.delete(url)
 
