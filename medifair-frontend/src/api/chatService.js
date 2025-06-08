@@ -236,4 +236,58 @@ export const cleanupDuplicateUsers = async () => {
   }
 }
 
-export default chatApi
+export const getUnreadMessageCount = async (roomId) => {
+  try {
+    const response = await chatApi.get(`/rooms/${roomId}/unread-count`)
+    return response.data
+  } catch (error) {
+    console.error("Error getting unread message count:", error)
+    throw error
+  }
+}
+
+export const markMessagesAsRead = async (roomId) => {
+  try {
+    await chatApi.post(`/rooms/${roomId}/mark-as-read`)
+  } catch (error) {
+    console.error("Error marking messages as read:", error)
+    throw error
+  }
+}
+
+export const getAvailableUsers = async () => {
+  try {
+    const response = await chatApi.get("/available-users")
+    return response.data
+  } catch (error) {
+    console.error("Error getting available users:", error)
+    throw error
+  }
+}
+
+export const getAvailableUsersFromMain = async () => {
+  try {
+    const response = await chatApi.get("/available-users-from-main")
+    return response.data
+  } catch (error) {
+    console.error("Error getting available users from main:", error)
+    throw error
+  }
+}
+
+// Add this export alias for backward compatibility
+export const getUserChatRooms = getChatRooms
+
+// Update the default export to include all functions
+export default {
+  getChatRooms,
+  getUserChatRooms, // Add this line
+  createChatRoom,
+  getChatMessages,
+  sendMessage,
+  cleanupDuplicateUsers,
+  getUnreadMessageCount,
+  markMessagesAsRead,
+  getAvailableUsers,
+  getAvailableUsersFromMain,
+}
