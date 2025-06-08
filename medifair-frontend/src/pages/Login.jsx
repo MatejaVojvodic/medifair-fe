@@ -124,12 +124,12 @@
 
 // export default Login
 
-"use client"
+//"use client"
 
 import { useState, useContext } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { AuthContext } from "../context/AuthContext"
-import { login } from "../api/auth"
+import { login } from "../api/authService"
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -223,3 +223,4 @@ const Login = () => {
 }
 
 export default Login
+
