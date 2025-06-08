@@ -126,9 +126,9 @@
 
 //"use client"
 
-import { useState, useContext } from "react"
+import { useState } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
-import { AuthContext } from "../context/AuthContext"
+import { useAuth } from "../context/AuthContext"
 import { login } from "../api/authService"
 
 const Login = () => {
@@ -141,7 +141,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
-  const { login: authLogin } = useContext(AuthContext)
+  const { login: authLogin } = useAuth()
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -223,4 +223,5 @@ const Login = () => {
 }
 
 export default Login
+
 
