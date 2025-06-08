@@ -124,13 +124,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect } from "react"
-import {
-  login as loginService,
-  register as registerService,
-  getCurrentUser,
-  logout as logoutService,
-  initializeAuth,
-} from "../api/authService"
+import { getCurrentUser, logout as logoutService, initializeAuth } from "../api/authService"
 
 const AuthContext = createContext()
 
@@ -173,19 +167,22 @@ export const AuthProvider = ({ children }) => {
     initAuth()
   }, [])
 
-  const login = async (credentials) => {
+  // ✅ FIXED: This function should only process the token, not call login API again
+  const login = async (token) => {
     try {
       setLoading(true)
-      const token = await loginService(credentials)
+
+      console.log("AuthContext: Processing login with token")
 
       // Get user data after successful login
       const userData = await getCurrentUser()
       setUser(userData)
       setIsAuthenticated(true)
 
+      console.log("AuthContext: Login completed successfully")
       return { success: true, token }
     } catch (error) {
-      console.error("Login failed:", error)
+      console.error("AuthContext: Login failed:", error)
       setUser(null)
       setIsAuthenticated(false)
       throw error
@@ -194,10 +191,9 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const register = async (userData) => {
+  const register = async (token) => {
     try {
       setLoading(true)
-      const token = await registerService(userData)
 
       // Get user data after successful registration
       const userProfile = await getCurrentUser()
