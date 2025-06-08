@@ -170,6 +170,9 @@ export const deleteUserAccount = async () => {
   }
 }
 
+// Alias for Profile.jsx compatibility
+export const deleteAccount = deleteUserAccount
+
 export const getAllUsers = async () => {
   try {
     console.log("Getting all users from:", `${API_BASE_URL}/api/users/all`)
@@ -198,5 +201,5 @@ export default {
   getCurrentUser,
   updateProfile,
   changePassword,
-  deleteUserAccount,
+  deleteAccount, // Add this line
 }
