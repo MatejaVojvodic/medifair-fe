@@ -123,129 +123,114 @@
 
 "use client"
 
-import { createContext, useState, useEffect, useContext } from "react"
-import axios from "axios"
+import { createContext, useContext, useState, useEffect } from "react"
+import {
+  login as loginService,
+  register as registerService,
+  getCurrentUser,
+  logout as logoutService,
+  initializeAuth,
+} from "../api/authService"
 
 const AuthContext = createContext()
 
-const AuthProvider = ({ children }) => {
+export const useAuth = () => {
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider")
+  }
+  return context
+}
+
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [authToken, setAuthToken] = useState(localStorage.getItem("authToken") || null)
+  const [loading, setLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
-    const storedToken = localStorage.getItem("authToken")
-    if (storedToken) {
-      setAuthToken(storedToken)
-      setAuthHeader(storedToken)
-      getCurrentUser()
-        .then((userData) => {
+    const initAuth = async () => {
+      try {
+        // Initialize auth and check if token exists
+        const hasToken = initializeAuth()
+
+        if (hasToken) {
+          // Try to get current user to verify token is valid
+          const userData = await getCurrentUser()
           setUser(userData)
-          setIsLoggedIn(true)
-        })
-        .catch((err) => {
-          console.error("Error fetching user data on app load:", err)
-          localStorage.removeItem("authToken")
-          setAuthHeader(null)
-        })
+          setIsAuthenticated(true)
+        }
+      } catch (error) {
+        console.error("Auth initialization failed:", error)
+        // Token might be invalid, clear it
+        logoutService()
+        setUser(null)
+        setIsAuthenticated(false)
+      } finally {
+        setLoading(false)
+      }
     }
+
+    initAuth()
   }, [])
 
-  const setAuthHeader = (token) => {
-    if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
-    } else {
-      delete axios.defaults.headers.common["Authorization"]
-    }
-  }
-
-  const getCurrentUser = async () => {
+  const login = async (credentials) => {
     try {
-      const response = await axios.get(`${process.env.REACT_APP_API_URL}/users/me`)
-      return response.data
-    } catch (error) {
-      console.error("Error fetching current user:", error)
-      throw error
-    }
-  }
+      setLoading(true)
+      const token = await loginService(credentials)
 
-  const login = async (token) => {
-    try {
-      // Prevent double calls
-      if (isLoading) {
-        console.log("Login already in progress, skipping...")
-        return
-      }
-
-      setIsLoading(true)
-      setError(null)
-
-      if (!token || typeof token !== "string") {
-        throw new Error("Invalid token provided to login function")
-      }
-
-      console.log("AuthContext: Processing login with token")
-
-      // Store token
-      localStorage.setItem("authToken", token)
-      setAuthHeader(token)
-
-      // Get user profile
+      // Get user data after successful login
       const userData = await getCurrentUser()
-      console.log("AuthContext: User data retrieved:", userData)
-
       setUser(userData)
-      setIsLoggedIn(true)
+      setIsAuthenticated(true)
 
-      console.log("AuthContext: Login completed successfully")
+      return { success: true, token }
     } catch (error) {
-      console.error("AuthContext: Login failed:", error)
-      setError(error.message)
-
-      // Clean up on error
-      localStorage.removeItem("authToken")
-      setAuthHeader(null)
+      console.error("Login failed:", error)
       setUser(null)
-      setIsLoggedIn(false)
-
+      setIsAuthenticated(false)
       throw error
     } finally {
-      setIsLoading(false)
+      setLoading(false)
+    }
+  }
+
+  const register = async (userData) => {
+    try {
+      setLoading(true)
+      const token = await registerService(userData)
+
+      // Get user data after successful registration
+      const userProfile = await getCurrentUser()
+      setUser(userProfile)
+      setIsAuthenticated(true)
+
+      return { success: true, token }
+    } catch (error) {
+      console.error("Registration failed:", error)
+      setUser(null)
+      setIsAuthenticated(false)
+      throw error
+    } finally {
+      setLoading(false)
     }
   }
 
   const logout = () => {
-    setIsLoading(true)
-
-    // Clear auth state
-    localStorage.removeItem("authToken")
-    setAuthHeader(null)
+    logoutService()
     setUser(null)
-    setIsLoggedIn(false)
-    setError(null)
-
-    console.log("AuthContext: User logged out")
-    setIsLoading(false)
+    setIsAuthenticated(false)
   }
 
   const value = {
     user,
-    isLoggedIn,
-    isLoading,
-    error,
     login,
+    register,
     logout,
-    authToken,
+    loading,
+    isAuthenticated,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-const useAuth = () => {
-  return useContext(AuthContext)
-}
-
-export { AuthProvider, useAuth }
 
