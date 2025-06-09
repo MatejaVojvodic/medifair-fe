@@ -340,7 +340,7 @@ export const sendMessage = async (receiverUsername, content, type = "TEXT") => {
     if (stompClient && stompClient.connected) {
       console.log("Sending via WebSocket...")
       stompClient.send(
-        "/app/chat.sendMessage",
+        "/chat.sendMessage",
         {},
         JSON.stringify({
           receiverUsername,
