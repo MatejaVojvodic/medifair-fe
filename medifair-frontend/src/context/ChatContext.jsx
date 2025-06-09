@@ -297,6 +297,7 @@ import {
   createChatRoom as apiCreateChatRoom,
   sendMessage as apiSendMessage,
 } from "../api/chatService.js"
+import { getWebSocketUrl } from "../api/chatService.js"
 
 const ChatContext = createContext()
 
@@ -309,37 +310,70 @@ export const ChatProvider = ({ children }) => {
   const [unreadCounts, setUnreadCounts] = useState({})
   const [loading, setLoading] = useState(false)
 
-  // Load chat rooms
+  // // Load chat rooms
+  // useEffect(() => {
+  //   if (!isLoggedIn) return
+
+  //   const loadChatRooms = async () => {
+  //     try {
+  //       setLoading(true)
+  //       const rooms = await getUserChatRooms()
+  //       console.log("Loaded chat rooms:", rooms)
+  //       setChatRooms(rooms)
+
+  //       // Get unread counts for each room
+  //       const counts = {}
+  //       for (const room of rooms) {
+  //         try {
+  //           const count = await getUnreadMessageCount(room.id)
+  //           counts[room.id] = count
+  //         } catch (error) {
+  //           console.error(`Error getting unread count for room ${room.id}:`, error)
+  //         }
+  //       }
+  //       setUnreadCounts(counts)
+  //     } catch (error) {
+  //       console.error("Error loading chat rooms:", error)
+  //     } finally {
+  //       setLoading(false)
+  //     }
+  //   }
+
+  //   loadChatRooms()
+  // }, [isLoggedIn])
   useEffect(() => {
-    if (!isLoggedIn) return
+  if (!isLoggedIn) return
 
-    const loadChatRooms = async () => {
-      try {
-        setLoading(true)
-        const rooms = await getUserChatRooms()
-        console.log("Loaded chat rooms:", rooms)
-        setChatRooms(rooms)
+  const socket = new WebSocket(getWebSocketUrl())
 
-        // Get unread counts for each room
-        const counts = {}
-        for (const room of rooms) {
-          try {
-            const count = await getUnreadMessageCount(room.id)
-            counts[room.id] = count
-          } catch (error) {
-            console.error(`Error getting unread count for room ${room.id}:`, error)
-          }
-        }
-        setUnreadCounts(counts)
-      } catch (error) {
-        console.error("Error loading chat rooms:", error)
-      } finally {
-        setLoading(false)
-      }
+  socket.onopen = () => {
+    console.log("WebSocket connected")
+    setConnected(true)
+  }
+
+  socket.onmessage = (event) => {
+    try {
+      const message = JSON.parse(event.data)
+      console.log("Received message via WS:", message)
+      handleNewMessage(message)
+    } catch (error) {
+      console.error("Failed to parse WebSocket message:", error)
     }
+  }
 
-    loadChatRooms()
-  }, [isLoggedIn])
+  socket.onclose = () => {
+    console.log("WebSocket disconnected")
+    setConnected(false)
+  }
+
+  socket.onerror = (error) => {
+    console.error("WebSocket error:", error)
+  }
+
+  return () => {
+    socket.close()
+  }
+}, [isLoggedIn, handleNewMessage])
 
   // Handle new messages
   const handleNewMessage = useCallback(
