@@ -50,20 +50,33 @@ const Login = () => {
     setSuccessMessage("")
 
     try {
-      // Call the login API
-      const token = await login(formData)
+    //   // Call the login API
+    //   const token = await login(formData)
 
-      // Update auth context with token
-      authLogin(token)
+    //   // Update auth context with token
+    //   authLogin(token)
 
-      // Redirect to home page or intended page
+    //   // Redirect to home page or intended page
+    //   const redirectTo = location.state?.from?.pathname || "/"
+    //   navigate(redirectTo)
+    // } catch (err) {
+    //   setError(err.response?.data?.message || "Login failed. Please check your credentials.")
+    // } finally {
+    //   setIsLoading(false)
+    // }
+    const result = await authLogin(formData)
+
+    if (result.success) {
       const redirectTo = location.state?.from?.pathname || "/"
       navigate(redirectTo)
-    } catch (err) {
-      setError(err.response?.data?.message || "Login failed. Please check your credentials.")
-    } finally {
-      setIsLoading(false)
+    } else {
+      setError(result.error || "Login failed")
     }
+  } catch (err) {
+    setError("Something went wrong.")
+  } finally {
+    setIsLoading(false)
+
   }
 
   return (
