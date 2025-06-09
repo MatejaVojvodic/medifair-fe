@@ -310,38 +310,6 @@ export const ChatProvider = ({ children }) => {
   const [unreadCounts, setUnreadCounts] = useState({})
   const [loading, setLoading] = useState(false)
 
-  // // Load chat rooms
-  // useEffect(() => {
-  //   if (!isLoggedIn) return
-
-  //   const loadChatRooms = async () => {
-  //     try {
-  //       setLoading(true)
-  //       const rooms = await getUserChatRooms()
-  //       console.log("Loaded chat rooms:", rooms)
-  //       setChatRooms(rooms)
-
-  //       // Get unread counts for each room
-  //       const counts = {}
-  //       for (const room of rooms) {
-  //         try {
-  //           const count = await getUnreadMessageCount(room.id)
-  //           counts[room.id] = count
-  //         } catch (error) {
-  //           console.error(`Error getting unread count for room ${room.id}:`, error)
-  //         }
-  //       }
-  //       setUnreadCounts(counts)
-  //     } catch (error) {
-  //       console.error("Error loading chat rooms:", error)
-  //     } finally {
-  //       setLoading(false)
-  //     }
-  //   }
-
-  //   loadChatRooms()
-  // }, [isLoggedIn])
-
   const handleNewMessage = useCallback(
     (message) => {
       console.log("Handling new message:", message)

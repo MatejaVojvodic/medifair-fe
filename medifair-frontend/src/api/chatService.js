@@ -245,7 +245,7 @@ if (token) {
 // Get all chat rooms for current user
 export const getChatRooms = async () => {
   try {
-    console.log("Getting chat rooms from:", `${CHAT_API_BASE_URL}/api/chat/rooms`)
+    console.log("Getting chat rooms from:", `${CHAT_API_BASE_URL}/rooms`)
     const response = await chatAPI.get("/api/chat/rooms")
     return response.data
   } catch (error) {
@@ -260,7 +260,7 @@ export const getUserChatRooms = getChatRooms
 // Get messages for a specific chat room
 export const getChatMessages = async (roomId) => {
   try {
-    console.log("Getting chat messages from:", `${CHAT_API_BASE_URL}/api/chat/rooms/${roomId}/messages`)
+    console.log("Getting chat messages from:", `${CHAT_API_BASE_URL}/rooms/${roomId}/messages`)
     const response = await chatAPI.get(`/api/chat/rooms/${roomId}/messages`)
     return response.data
   } catch (error) {
@@ -272,7 +272,7 @@ export const getChatMessages = async (roomId) => {
 // Create a new chat room
 export const createChatRoom = async (receiverUsername) => {
   try {
-    console.log("Creating chat room with:", `${CHAT_API_BASE_URL}/api/chat/rooms/create`)
+    console.log("Creating chat room with:", `${CHAT_API_BASE_URL}/rooms/create`)
     const response = await chatAPI.post("/api/chat/rooms/create", { receiverUsername })
     return response.data
   } catch (error) {
@@ -284,7 +284,7 @@ export const createChatRoom = async (receiverUsername) => {
 // Send a message via HTTP API
 export const sendMessage = async (receiverUsername, content, type = "TEXT") => {
   try {
-    console.log("Sending message to:", `${CHAT_API_BASE_URL}/api/chat/send`)
+    console.log("Sending message to:", `${CHAT_API_BASE_URL}/send`)
     const response = await chatAPI.post("/api/chat/send", {
       receiverUsername,
       content,
@@ -300,7 +300,7 @@ export const sendMessage = async (receiverUsername, content, type = "TEXT") => {
 // Get available users to chat with
 export const getAvailableUsers = async () => {
   try {
-    console.log("Getting available users from:", `${CHAT_API_BASE_URL}/api/chat/users`)
+    console.log("Getting available users from:", `${CHAT_API_BASE_URL}/users`)
     const response = await chatAPI.get("/api/chat/users")
     return response.data
   } catch (error) {
@@ -324,7 +324,7 @@ export const getAvailableUsersFromMain = async () => {
 // Cleanup duplicate users
 export const cleanupDuplicateUsers = async () => {
   try {
-    console.log("Cleaning up duplicate users:", `${CHAT_API_BASE_URL}/api/chat/cleanup-duplicates`)
+    console.log("Cleaning up duplicate users:", `${CHAT_API_BASE_URL}/cleanup-duplicates`)
     const response = await chatAPI.post("/api/chat/cleanup-duplicates")
     return response.data
   } catch (error) {
@@ -337,7 +337,7 @@ export const cleanupDuplicateUsers = async () => {
 // Mark messages as read
 export const markMessagesAsRead = async (roomId) => {
   try {
-    console.log("Marking messages as read:", `${CHAT_API_BASE_URL}/api/chat/rooms/${roomId}/read`)
+    console.log("Marking messages as read:", `${CHAT_API_BASE_URL}/rooms/${roomId}/read`)
     const response = await chatAPI.post(`/api/chat/rooms/${roomId}/read`)
     return response.data
   } catch (error) {
@@ -352,12 +352,12 @@ export const getUnreadMessageCount = async (roomId) => {
     if (roomId) {
       console.log(
         "Getting unread message count for room:",
-        `${CHAT_API_BASE_URL}/api/chat/rooms/${roomId}/unread-count`,
+        `${CHAT_API_BASE_URL}/rooms/${roomId}/unread-count`,
       )
       const response = await chatAPI.get(`/api/chat/rooms/${roomId}/unread-count`)
       return response.data
     } else {
-      console.log("Getting total unread message count:", `${CHAT_API_BASE_URL}/api/chat/messages/unread/count`)
+      console.log("Getting total unread message count:", `${CHAT_API_BASE_URL}/messages/unread/count`)
       const response = await chatAPI.get("/api/chat/messages/unread/count")
       return response.data
     }
