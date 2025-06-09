@@ -215,298 +215,161 @@
 //   }
 // }
 
-import axios from "axios"
-import SockJS from "sockjs-client"
-import { Stomp } from "@stomp/stompjs"
-import { API_BASE_URL, CHAT_API_BASE_URL, WS_BASE_URL } from "./config.js"
+// chatService.js
+import axios from "axios";
+import SockJS from "sockjs-client";
+import { Stomp } from "@stomp/stompjs";
+import { API_BASE_URL, CHAT_API_BASE_URL, WS_BASE_URL } from "./config.js";
 
-// Cloud URLs - dynamically determined
-const CHAT_API_URL = CHAT_API_BASE_URL
-const WS_CHAT_URL = `${WS_BASE_URL}/chat`
-const MAIN_API_URL = API_BASE_URL
+let stompClient = null;
 
-let stompClient = null
-
-// Create axios instance with auth header for chat service
+// Setup REST API clients
 const chatApi = axios.create({
-  baseURL: CHAT_API_URL,
-  withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
-})
+  baseURL: CHAT_API_BASE_URL,
+  timeout: 10000,
+  headers: { "Content-Type": "application/json" },
+});
 
-// Create axios instance for main server
 const mainApi = axios.create({
-  baseURL: MAIN_API_URL,
-  withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
-})
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: { "Content-Type": "application/json" },
+});
 
-// Get auth token from localStorage
-const getAuthToken = () => {
-  return localStorage.getItem("token")
+// Attach Authorization header to all requests
+function getAuthToken() {
+  return localStorage.getItem("token");
 }
 
-// Add auth token to every request
-const addAuthInterceptor = (apiInstance) => {
-  apiInstance.interceptors.request.use(
-    (config) => {
-      const token = getAuthToken()
-      if (token) {
-        config.headers["Authorization"] = `Bearer ${token}`
-      }
-      console.log("API request:", config.method?.toUpperCase(), config.baseURL + config.url)
-      return config
-    },
-    (error) => {
-      return Promise.reject(error)
-    },
-  )
+const attachAuth = (instance) => {
+  instance.interceptors.request.use((cfg) => {
+    const token = getAuthToken();
+    if (token) cfg.headers.Authorization = `Bearer ${token}`;
+    return cfg;
+  });
+};
 
-  apiInstance.interceptors.response.use(
-    (response) => {
-      console.log("API response:", response.status, response.config.url)
-      return response
-    },
-    (error) => {
-      console.error("API error:", error.response?.status, error.response?.data, error.config?.url)
-      return Promise.reject(error)
-    },
-  )
-}
+attachAuth(chatApi);
+attachAuth(mainApi);
 
-addAuthInterceptor(chatApi)
-addAuthInterceptor(mainApi)
-
-// WebSocket connection for real-time chat
-export const connectToChat = (token, onMessageReceived, onConnected, onError) => {
-  console.log("Connecting to WebSocket at:", WS_CHAT_URL)
-
-  const socket = new SockJS(WS_CHAT_URL)
-  stompClient = Stomp.over(socket)
-
-  // Disable debug logging in production
-  stompClient.debug = (str) => {
-    console.log("STOMP:", str)
-  }
-
-  const headers = {
-    Authorization: `Bearer ${token}`,
-  }
+// WebSocket connect
+export function connectToChat(onMessage, onConnect, onError) {
+  const wsUrl = `${WS_BASE_URL}/chat`;
+  const token = getAuthToken();
+  const socket = new SockJS(wsUrl);
+  stompClient = Stomp.over(socket);
+  stompClient.debug = () => {}; // reduce logs
 
   stompClient.connect(
-    headers,
+    { Authorization: `Bearer ${token}` },
     (frame) => {
-      console.log("Connected to chat WebSocket: " + frame)
-      if (onConnected) onConnected()
+      console.log("WS connected:", frame);
+      onConnect && onConnect();
 
-      // Subscribe to private messages
-      stompClient.subscribe("/user/queue/messages", (message) => {
-        const receivedMessage = JSON.parse(message.body)
-        console.log("Received WebSocket message:", receivedMessage)
-        if (onMessageReceived) onMessageReceived(receivedMessage)
-      })
-
-      // Subscribe to chat room messages
-      stompClient.subscribe("/topic/messages", (message) => {
-        const receivedMessage = JSON.parse(message.body)
-        console.log("Received room message:", receivedMessage)
-        if (onMessageReceived) onMessageReceived(receivedMessage)
-      })
+      // Subscribe to personal messages
+      stompClient.subscribe("/user/queue/messages", (msg) => {
+        onMessage(JSON.parse(msg.body));
+      });
     },
-    (error) => {
-      console.error("Chat WebSocket connection error: ", error)
-      if (onError) onError(error)
-    },
-  )
-}
-
-export const disconnectFromChat = () => {
-  if (stompClient && stompClient.connected) {
-    stompClient.disconnect()
-    console.log("Disconnected from chat WebSocket")
-  }
-}
-
-// Send message via WebSocket (if connected) or HTTP API (fallback)
-export const sendMessage = async (receiverUsername, content, type = "TEXT") => {
-  try {
-    console.log("Sending message to:", receiverUsername, "Content:", content)
-
-    // Try WebSocket first if connected
-    if (stompClient && stompClient.connected) {
-      console.log("Sending via WebSocket...")
-      stompClient.send(
-        "/chat.sendMessage",
-        {},
-        JSON.stringify({
-          receiverUsername,
-          content,
-          type,
-        }),
-      )
-      return { success: true, method: "websocket" }
-    } else {
-      // Fallback to HTTP API
-      console.log("Sending via HTTP API...")
-      const response = await chatApi.post("/send", {
-        receiverUsername,
-        content,
-        type,
-      })
-      return response.data
+    (err) => {
+      console.error("WS error:", err);
+      onError && onError(err);
     }
-  } catch (error) {
-    console.error("Error sending message:", error)
-    throw error
+  );
+}
+
+// Disconnect WebSocket
+export function disconnectFromChat() {
+  if (stompClient && stompClient.connected) {
+    stompClient.disconnect();
+    console.log("WS disconnected");
   }
 }
 
-// Create or get existing chat room with a user
-export const createChatRoom = async (receiverUsername) => {
+// Send message via WS or REST fallback
+export async function sendMessage(receiverUsername, content, type = "TEXT") {
+  if (stompClient && stompClient.connected) {
+    stompClient.send(
+      "/app/chat.send",
+      {},
+      JSON.stringify({ receiverUsername, content, type })
+    );
+    return { via: "websocket" };
+  } else {
+    const res = await chatApi.post("/send", { receiverUsername, content, type });
+    return res.data;
+  }
+}
+
+// Create or fetch chat room
+export async function createChatRoom(receiverUsername) {
+  const res = await chatApi.post("/rooms/create", { receiverUsername });
+  return res.data;
+}
+
+// Fetch list of chat rooms
+export async function getChatRooms() {
+  const res = await chatApi.get("/rooms");
+  return res.data;
+}
+
+// Fetch messages for a room
+export async function getChatMessages(roomId) {
+  const res = await chatApi.get(`/rooms/${roomId}/messages`);
+  return res.data;
+}
+
+// Mark a room as read
+export async function markMessagesAsRead(roomId) {
+  await chatApi.post(`/rooms/${roomId}/read`);
+}
+
+// Get unread message count
+export async function getUnreadMessageCount(roomId) {
+  const res = await chatApi.get(`/rooms/${roomId}/unread-count`);
+  return res.data;
+}
+
+// Fetch chat-service users (fallback)
+export async function getAvailableUsers() {
+  const res = await chatApi.get("/users");
+  return res.data;
+}
+
+// Fetch main system users
+export async function getAvailableUsersFromMain() {
   try {
-    console.log("Creating chat room with:", receiverUsername)
-    const response = await chatApi.post("/rooms/create", {
-      receiverUsername: receiverUsername,
-    })
-    console.log("Chat room created:", response.data)
-    return response.data
-  } catch (error) {
-    console.error("Error creating chat room:", error)
-    throw error
+    const res = await mainApi.get("/users/for-chat");
+    return res.data;
+  } catch {
+    return getAvailableUsers();
   }
 }
 
-export const getUserChatRooms = async () => {
+// Cleanup duplicates
+export async function cleanupDuplicateUsers() {
   try {
-    console.log("Getting chat rooms from:", CHAT_API_URL + "/rooms")
-    const response = await chatApi.get("/rooms")
-    return response.data
-  } catch (error) {
-    console.error("Error fetching chat rooms:", error)
-    throw error
+    await chatApi.post("/cleanup-duplicates");
+  } catch (e) {
+    console.warn("Duplicate cleanup failed:", e);
   }
 }
 
-// Alias for backward compatibility
-export const getChatRooms = getUserChatRooms
-
-export const getChatMessages = async (chatRoomId, page = 0, size = 50) => {
-  try {
-    const response = await chatApi.get(`/rooms/${chatRoomId}/messages?page=${page}&size=${size}`)
-    return response.data
-  } catch (error) {
-    console.error("Error fetching chat messages:", error)
-    throw error
-  }
-}
-
-export const markMessagesAsRead = async (chatRoomId) => {
-  try {
-    await chatApi.post(`/rooms/${chatRoomId}/read`)
-  } catch (error) {
-    console.error("Error marking messages as read:", error)
-    throw error
-  }
-}
-
-export const getUnreadMessageCount = async (chatRoomId) => {
-  try {
-    const response = await chatApi.get(`/rooms/${chatRoomId}/unread-count`)
-    return response.data
-  } catch (error) {
-    console.error("Error fetching unread count:", error)
-    return 0 // Return 0 as fallback
-  }
-}
-
-// Get users from chat system (fallback)
-export const getAvailableUsers = async () => {
-  try {
-    const response = await chatApi.get("/users")
-    console.log("Available users from chat system:", response.data)
-    return response.data
-  } catch (error) {
-    console.error("Error fetching available users from chat system:", error)
-    throw error
-  }
-}
-
-// Get users from main system (primary method)
-export const getAvailableUsersFromMain = async () => {
-  try {
-    console.log("Fetching users from main system...")
-    const response = await mainApi.get("/users/for-chat")
-    console.log("Available users from main system:", response.data)
-    return response.data
-  } catch (error) {
-    console.error("Error fetching users from main system:", error)
-    // Fallback to chat system
-    console.log("Falling back to chat system users...")
-    return await getAvailableUsers()
-  }
-}
-
-// Sync users from main to chat system
-export const syncUsersToChat = async () => {
-  try {
-    const response = await chatApi.post("/sync-users")
-    console.log("Users synced to chat system")
-    return response.data
-  } catch (error) {
-    console.error("Error syncing users to chat system:", error)
-    throw error
-  }
-}
-
-export const checkChatHealth = async () => {
-  try {
-    const response = await axios.get(`${CHAT_API_URL}/health`)
-    return response.data
-  } catch (error) {
-    console.error("Chat service health check failed:", error)
-    throw error
-  }
-}
-
-// Cleanup duplicate users
-export const cleanupDuplicateUsers = async () => {
-  try {
-    const response = await chatApi.post("/cleanup-duplicates")
-    console.log("Duplicate users cleaned up")
-    return response.data
-  } catch (error) {
-    console.error("Error cleaning up duplicate users:", error)
-    // Don't throw error for cleanup failures
-    return { message: "Cleanup attempted" }
-  }
-}
-
-// Get WebSocket URL for debugging
-export const getWebSocketUrl = () => {
-  const token = getAuthToken()
-  return `${WS_CHAT_URL}?token=${token}`
-}
-
-// Export all functions for compatibility
-export default {
+// Export convenience getters
+export const chatService = {
   connectToChat,
   disconnectFromChat,
   sendMessage,
   createChatRoom,
-  getUserChatRooms,
   getChatRooms,
   getChatMessages,
   markMessagesAsRead,
   getUnreadMessageCount,
   getAvailableUsers,
   getAvailableUsersFromMain,
-  syncUsersToChat,
-  checkChatHealth,
   cleanupDuplicateUsers,
-  getWebSocketUrl,
-}
+};
+
+export default chatService;
+
 
