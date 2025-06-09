@@ -76,7 +76,7 @@ const Login = () => {
     setError("Something went wrong.")
   } finally {
     setIsLoading(false)
-
+  }
   }
 
   return (
