@@ -341,41 +341,7 @@ export const ChatProvider = ({ children }) => {
 
   //   loadChatRooms()
   // }, [isLoggedIn])
-  useEffect(() => {
-  if (!isLoggedIn) return
 
-  const socket = new WebSocket(getWebSocketUrl())
-
-  socket.onopen = () => {
-    console.log("WebSocket connected")
-    setConnected(true)
-  }
-
-  socket.onmessage = (event) => {
-    try {
-      const message = JSON.parse(event.data)
-      console.log("Received message via WS:", message)
-      handleNewMessage(message)
-    } catch (error) {
-      console.error("Failed to parse WebSocket message:", error)
-    }
-  }
-
-  socket.onclose = () => {
-    console.log("WebSocket disconnected")
-    setConnected(false)
-  }
-
-  socket.onerror = (error) => {
-    console.error("WebSocket error:", error)
-  }
-
-  return () => {
-    socket.close()
-  }
-}, [isLoggedIn, handleNewMessage])
-
-  // Handle new messages
   const handleNewMessage = useCallback(
     (message) => {
       console.log("Handling new message:", message)
@@ -416,6 +382,40 @@ export const ChatProvider = ({ children }) => {
     },
     [username],
   )
+  useEffect(() => {
+  if (!isLoggedIn) return
+
+  const socket = new WebSocket(getWebSocketUrl())
+
+  socket.onopen = () => {
+    console.log("WebSocket connected")
+    setConnected(true)
+  }
+
+  socket.onmessage = (event) => {
+    try {
+      const message = JSON.parse(event.data)
+      console.log("Received message via WS:", message)
+      handleNewMessage(message)
+    } catch (error) {
+      console.error("Failed to parse WebSocket message:", error)
+    }
+  }
+
+  socket.onclose = () => {
+    console.log("WebSocket disconnected")
+    setConnected(false)
+  }
+
+  socket.onerror = (error) => {
+    console.error("WebSocket error:", error)
+  }
+
+  return () => {
+    socket.close()
+  }
+}, [isLoggedIn, handleNewMessage])
+  
 
   // Create a new chat room
   const createChatRoom = useCallback(async (receiverUsername) => {
