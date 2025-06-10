@@ -263,6 +263,26 @@ export async function getChatMessages(roomId) {
   return response.data;
 }
 
+export async function cleanupDuplicateUsers() {
+  try {
+    const response = await fetch("/api/chat/cleanup-duplicates", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to clean up duplicate users")
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error("Error in cleanupDuplicateUsers:", error)
+    throw error
+  }
+}
+
 export async function sendMessage(roomId, content) {
   const token = localStorage.getItem("token");
   const response = await axios.post(`${API_BASE_URL}/rooms/${roomId}/messages`, {
