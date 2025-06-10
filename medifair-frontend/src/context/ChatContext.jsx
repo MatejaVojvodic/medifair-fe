@@ -411,26 +411,25 @@ export const ChatProvider = ({ children }) => {
     }
   }, [])
 
-  // Send message via HTTP API
   const sendMessage = useCallback(
-    (roomId, receiverUsername, content, type = "TEXT") => {
-      console.log("=== Sending Message ===")
-      console.log("Room ID:", roomId)
-      console.log("Receiver:", receiverUsername)
-      console.log("Content:", content)
+  (roomId, receiverUsername, content, type = "TEXT") => {
+    console.log("=== Sending Message ===")
+    console.log("Room ID:", roomId)
+    console.log("Receiver:", receiverUsername)
+    console.log("Content:", content)
 
-      // Use HTTP API
-      apiSendMessage(receiverUsername, content, type)
-        .then((savedMessage) => {
-          console.log("Message sent via HTTP:", savedMessage)
-          handleNewMessage(savedMessage)
-        })
-        .catch((error) => {
-          console.error("Error sending message via HTTP:", error)
-        })
-    },
-    [handleNewMessage],
-  )
+    apiSendMessage(roomId, content, type)
+      .then((savedMessage) => {
+        console.log("Message sent via HTTP:", savedMessage)
+        handleNewMessage(savedMessage)
+      })
+      .catch((error) => {
+        console.error("Error sending message via HTTP:", error)
+      })
+  },
+  [handleNewMessage],
+)
+
 
   // Refresh chat rooms
   const refreshChatRooms = useCallback(async () => {
