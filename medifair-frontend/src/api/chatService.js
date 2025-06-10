@@ -215,166 +215,86 @@
 //   }
 // }
 
-// chatService.js
+
 import axios from "axios";
 import SockJS from "sockjs-client";
-import { Stomp } from "@stomp/stompjs";
-import { API_BASE_URL, CHAT_API_BASE_URL, WS_BASE_URL } from "./config.js";
+import { Client } from "@stomp/stompjs";
 
-let stompClient = null;
+const API_BASE_URL = "/api/chat";
+const WS_BASE_URL = "/ws/chat";
 
-// Setup REST API clients
-const chatApi = axios.create({
-  baseURL: CHAT_API_BASE_URL,
-  timeout: 10000,
-  headers: { "Content-Type": "application/json" },
-});
-
-const mainApi = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
-  headers: { "Content-Type": "application/json" },
-});
-
-// Attach Authorization header to all requests
-function getAuthToken() {
-  return localStorage.getItem("token");
-}
-
-const attachAuth = (instance) => {
-  instance.interceptors.request.use((cfg) => {
-    const token = getAuthToken();
-    if (token) cfg.headers.Authorization = `Bearer ${token}`;
-    return cfg;
-  });
-};
-
-attachAuth(chatApi);
-attachAuth(mainApi);
-
-// WebSocket connect
-export function connectToChat(onMessage, onConnect, onError) {
-  const wsUrl = `${WS_BASE_URL}/chat`;
-  const token = getAuthToken();
-  const socket = new SockJS(wsUrl);
-  stompClient = Stomp.over(socket);
-  stompClient.debug = () => {}; // reduce logs
-
-  stompClient.connect(
-    { Authorization: `Bearer ${token}` },
-    (frame) => {
-      console.log("WS connected:", frame);
-      onConnect && onConnect();
-
-      // Subscribe to personal messages
-      stompClient.subscribe("/user/queue/messages", (msg) => {
-        onMessage(JSON.parse(msg.body));
-      });
-    },
-    (err) => {
-      console.error("WS error:", err);
-      onError && onError(err);
-    }
-  );
-}
-
-// Disconnect WebSocket
-export function disconnectFromChat() {
-  if (stompClient && stompClient.connected) {
-    stompClient.disconnect();
-    console.log("WS disconnected");
-  }
-}
-
-// Send message via WS or REST fallback
-export async function sendMessage(receiverUsername, content, type = "TEXT") {
-  if (stompClient && stompClient.connected) {
-    stompClient.send(
-      "/app/chat.send",
-      {},
-      JSON.stringify({ receiverUsername, content, type })
-    );
-    return { via: "websocket" };
-  } else {
-    const res = await chatApi.post("/send", { receiverUsername, content, type });
-    return res.data;
-  }
-}
-
-// Create or fetch chat room
-export async function createChatRoom(receiverUsername) {
-  const res = await chatApi.post("/rooms/create", { receiverUsername });
-  return res.data;
-}
-
-// Fetch list of chat rooms
-export async function getChatRooms() {
-  const res = await chatApi.get("/rooms");
-  return res.data;
-}
-
-// Fetch messages for a room
-export async function getChatMessages(roomId) {
-  const res = await chatApi.get(`/rooms/${roomId}/messages`);
-  return res.data;
-}
-
-// Mark a room as read
-export async function markMessagesAsRead(roomId) {
-  await chatApi.post(`/rooms/${roomId}/read`);
-}
-
-// Get unread message count
-export async function getUnreadMessageCount(roomId) {
-  const res = await chatApi.get(`/rooms/${roomId}/unread-count`);
-  return res.data;
-}
-
-// Fetch chat-service users (fallback)
-export async function getAvailableUsers() {
-  const res = await chatApi.get("/users");
-  return res.data;
-}
-
-// Fetch main system users
-export async function getAvailableUsersFromMain() {
-  try {
-    const res = await mainApi.get("/users/for-chat");
-    return res.data;
-  } catch {
-    return getAvailableUsers();
-  }
-}
-
-// Cleanup duplicates
-export async function cleanupDuplicateUsers() {
-  try {
-    await chatApi.post("/cleanup-duplicates");
-  } catch (e) {
-    console.warn("Duplicate cleanup failed:", e);
-  }
-}
-
-export function getWebSocketUrl() {
+export async function getUserChatRooms() {
   const token = localStorage.getItem("token");
-  return `/ws/chat?token=${token}`;
+  const response = await axios.get(`${API_BASE_URL}/rooms`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
 }
 
-// Export convenience getters
-export const chatService = {
-  connectToChat,
-  disconnectFromChat,
-  sendMessage,
-  createChatRoom,
-  getChatRooms,
-  getChatMessages,
-  markMessagesAsRead,
-  getUnreadMessageCount,
-  getAvailableUsers,
-  getAvailableUsersFromMain,
-  cleanupDuplicateUsers,
-};
+export async function getUnreadMessageCount() {
+  const token = localStorage.getItem("token");
+  const response = await axios.get(`${API_BASE_URL}/messages/unread/count`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+}
 
-export default chatService;
+export async function createChatRoom(userId) {
+  const token = localStorage.getItem("token");
+  const response = await axios.post(`${API_BASE_URL}/rooms`, { userId }, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+}
+
+export async function getMessages(roomId) {
+  const token = localStorage.getItem("token");
+  const response = await axios.get(`${API_BASE_URL}/rooms/${roomId}/messages`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+}
+
+export async function sendMessage(roomId, content) {
+  const token = localStorage.getItem("token");
+  const response = await axios.post(`${API_BASE_URL}/rooms/${roomId}/messages`, {
+    content,
+  }, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+}
+
+// WebSocket connection
+export function connectToChat(onMessageReceived) {
+  const token = localStorage.getItem("token");
+
+  const socket = new SockJS(WS_BASE_URL);
+  const stompClient = new Client({
+    webSocketFactory: () => socket,
+    connectHeaders: {
+      Authorization: `Bearer ${token}`,
+    },
+    debug: (str) => console.log(str),
+    onConnect: () => console.log("Connected to WebSocket"),
+    onStompError: (frame) => console.error("WebSocket error", frame),
+  });
+
+  stompClient.onWebSocketError = (error) => {
+    console.error("WebSocket connection error:", error);
+  };
+
+  stompClient.onConnect = () => {
+    console.log("WebSocket connected");
+    stompClient.subscribe("/user/queue/messages", (message) => {
+      const body = JSON.parse(message.body);
+      onMessageReceived(body);
+    });
+  };
+
+  stompClient.activate();
+
+  return stompClient;
+}
 
 
