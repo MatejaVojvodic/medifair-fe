@@ -221,6 +221,13 @@ import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 import { API_BASE_URL, WS_BASE_URL } from "./config";
 
+const chatAPI = axios.create({
+  baseURL: CHAT_API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+})
 
 const tokenHeader = () => ({
   headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -265,14 +272,25 @@ export async function sendMessage(roomId, content, type = "TEXT") {
 }
 
 export async function cleanupDuplicateUsers() {
-  const response = await axios.post(`${API_BASE_URL}/api/cleanup-duplicates`, {}, tokenHeader());
+  const response = await axios.post(`${API_BASE_URL}/cleanup-duplicates`, {}, tokenHeader());
   return response.data;
 }
 
-export const getAvailableUsersFromMain = async () => {
-  const response = await axios.get(`${API_BASE_URL}/api/users`, tokenHeader());
-  return response.data;
-};
+// export const getAvailableUsersFromMain = async () => {
+//   const response = await axios.get(`${API_BASE_URL}/users`, tokenHeader());
+//   return response.data;
+// };
+
+export const getAvailableUsers = async () => {
+  try {
+    console.log("Getting available users from:", `${CHAT_API_BASE_URL}/api/chat/users`)
+    const response = await chatAPI.get("/api/chat/users")
+    return response.data
+  } catch (error) {
+    console.error("Error fetching available users:", error)
+    throw error
+  }
+}
 
 export const getWebSocketUrl = () => {
   const protocol = window.location.protocol === "http:" ? "wss" : "ws";

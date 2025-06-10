@@ -353,6 +353,8 @@ export const ChatProvider = ({ children }) => {
   useEffect(() => {
   if (!isLoggedIn) return
 
+  const stompClient = connectToChat(handleNewMessage)
+
   const socket = new WebSocket(getWebSocketUrl())
 
   socket.onopen = () => {
