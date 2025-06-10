@@ -265,12 +265,12 @@ export async function sendMessage(roomId, content, type = "TEXT") {
 }
 
 export async function cleanupDuplicateUsers() {
-  const response = await axios.post(`${API_BASE_URL}/cleanup-duplicates`, {}, tokenHeader());
+  const response = await axios.post(`${API_BASE_URL}/api/cleanup-duplicates`, {}, tokenHeader());
   return response.data;
 }
 
 export const getAvailableUsersFromMain = async () => {
-  const response = await axios.get(`${API_BASE_URL}/users`, tokenHeader());
+  const response = await axios.get(`${API_BASE_URL}/api/users`, tokenHeader());
   return response.data;
 };
 
