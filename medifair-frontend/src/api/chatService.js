@@ -221,9 +221,19 @@ import axios from "axios"
 import SockJS from "sockjs-client"
 import { Client } from "@stomp/stompjs"
 import { WS_BASE_URL, CHAT_API_BASE_URL } from "./config"
+import { API_BASE_URL } from "./config.js"
 
 const chatAPI = axios.create({
   baseURL: CHAT_API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+})
+
+// Create axios instance for cart
+const userAPI = axios.create({
+  baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
@@ -280,8 +290,8 @@ export async function cleanupDuplicateUsers() {
 
 export const getAvailableUsersFromMain = async () => {
   try {
-    console.log("Getting available users from:", `${CHAT_API_BASE_URL}/api/chat/users`)
-    const response = await chatAPI.get("/api/chat/users")
+    console.log("Getting available users from:", `${CHAT_API_BASE_URL}/api/user/for-chat`)
+    const response = await userAPI.get("/user/for-chat")
     return response.data
   } catch (error) {
     console.error("Error fetching available users:", error)
