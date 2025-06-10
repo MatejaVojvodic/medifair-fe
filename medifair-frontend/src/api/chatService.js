@@ -219,7 +219,7 @@
 import axios from "axios";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
-import { API_BASE_URL, WS_BASE_URL } from "./config";
+import { API_BASE_URL, WS_BASE_URL, CHAT_API_BASE_URL } from "./config";
 
 const chatAPI = axios.create({
   baseURL: CHAT_API_BASE_URL,
