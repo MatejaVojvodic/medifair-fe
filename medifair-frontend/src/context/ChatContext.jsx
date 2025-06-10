@@ -297,7 +297,7 @@ import {
   createChatRoom as apiCreateChatRoom,
   sendMessage as apiSendMessage,
 } from "../api/chatService.js"
-import { getWebSocketUrl } from "../api/chatService.js"
+//import { getWebSocketUrl } from "../api/chatService.js"
 
 const ChatContext = createContext()
 
