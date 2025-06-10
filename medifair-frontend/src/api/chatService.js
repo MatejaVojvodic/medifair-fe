@@ -216,111 +216,130 @@
 // }
 
 
+// src/api/chatService.js
 
-import axios from "axios"
-import SockJS from "sockjs-client"
-import { Client } from "@stomp/stompjs"
-import { WS_BASE_URL, CHAT_API_BASE_URL } from "./config"
-import { API_BASE_URL } from "./config.js"
+import axios from "axios";
+import SockJS from "sockjs-client";
+import { Client } from "@stomp/stompjs";
+import { WS_BASE_URL, CHAT_API_BASE_URL, API_BASE_URL } from "./config"; // Ensure API_BASE_URL is imported if userAPI is used later
 
+// Create axios instance for chat-related APIs
 const chatAPI = axios.create({
-  baseURL: CHAT_API_BASE_URL,
+  baseURL: CHAT_API_BASE_URL, // This is now http://159.223.240.149/api/chat
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
   },
-})
+});
 
-//const CHAT_API_BASE_URL = import.meta.env.VITE_CHAT_API_BASE_URL;
-
-export const getUserChatRooms = async () => {
-  const response = await axios.get(`${CHAT_API_BASE_URL}/chat/user-rooms`);
-  return response.data;
-};
-
-// also export other functions
-export const getUnreadMessageCount = async () => {
-  const response = await axios.get(`${CHAT_API_BASE_URL}/chat/unread-count`);
-  return response.data;
-};
-
-// Create axios instance for cart
+// Create axios instance for main backend APIs (if any other main backend APIs are used here)
 const userAPI = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_BASE_URL, // This is now http://159.223.240.149/api
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
   },
-})
+});
 
-// Add auth interceptor to chatAPI
+// Add auth interceptor to chatAPI and userAPI
+// (assuming both might need auth, otherwise remove from userAPI)
 chatAPI.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token")
+  const token = localStorage.getItem("token");
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+    config.headers.Authorization = `Bearer ${token}`;
   }
-  return config
-})
+  return config;
+});
 
-const tokenHeader = () => ({
-  headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-})
+userAPI.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Removed the redundant tokenHeader function, interceptor handles it.
+
+// --- Chat API Functions (using chatAPI instance) ---
 
 export async function getUserChatRooms() {
-  const response = await chatAPI.get("/api/chat/rooms")
-  return response.data
+  // Frontend calls: http://159.223.240.149/api/chat/rooms
+  // Nginx proxies to: http://209.38.52.45/rooms
+  // Ensure your chat backend has @RequestMapping or equivalent for /rooms
+  const response = await chatAPI.get("/rooms");
+  return response.data;
 }
 
 export async function getUnreadMessageCount(roomId) {
-  const response = await chatAPI.get(`/api/chat/rooms/${roomId}/unread-count`)
-  return response.data
+  // Frontend calls: http://159.223.240.149/api/chat/rooms/{roomId}/unread-count
+  // Nginx proxies to: http://209.38.52.45/rooms/{roomId}/unread-count
+  const response = await chatAPI.get(`/rooms/${roomId}/unread-count`);
+  return response.data;
 }
 
 export async function createChatRoom(receiverUsername) {
-  const response = await chatAPI.post("/api/chat/rooms/create", { receiverUsername })
-  return response.data
+  // Frontend calls: http://159.223.240.149/api/chat/rooms/create
+  // Nginx proxies to: http://209.38.52.45/rooms/create
+  const response = await chatAPI.post("/rooms/create", { receiverUsername });
+  return response.data;
 }
 
 export async function markMessagesAsRead(roomId) {
-  const response = await chatAPI.post(`/api/chat/rooms/${roomId}/read`, {})
-  return response.data
+  // Frontend calls: http://159.223.240.149/api/chat/rooms/{roomId}/read
+  // Nginx proxies to: http://209.38.52.45/rooms/{roomId}/read
+  const response = await chatAPI.post(`/rooms/${roomId}/read`, {});
+  return response.data;
 }
 
 export async function getChatMessages(roomId) {
-  const response = await chatAPI.get(`/api/chat/rooms/${roomId}/messages`)
-  return response.data
+  // Frontend calls: http://159.223.240.149/api/chat/rooms/{roomId}/messages
+  // Nginx proxies to: http://209.38.52.45/rooms/{roomId}/messages
+  const response = await chatAPI.get(`/rooms/${roomId}/messages`);
+  return response.data;
 }
 
 export async function sendMessage(roomId, content, type = "TEXT") {
-  const response = await chatAPI.post(`/api/chat/rooms/${roomId}/messages`, { content, type })
-  return response.data
+  // Frontend calls: http://159.223.240.149/api/chat/rooms/{roomId}/messages
+  // Nginx proxies to: http://209.38.52.45/rooms/{roomId}/messages
+  const response = await chatAPI.post(`/rooms/${roomId}/messages`, { content, type });
+  return response.data;
 }
 
 export async function cleanupDuplicateUsers() {
-  const response = await chatAPI.post("/api/chat/cleanup-duplicates", {})
-  return response.data
+  // Frontend calls: http://159.223.240.149/api/chat/cleanup-duplicates
+  // Nginx proxies to: http://209.38.52.45/cleanup-duplicates
+  const response = await chatAPI.post("/cleanup-duplicates", {});
+  return response.data;
 }
 
 export const getAvailableUsersFromMain = async () => {
   try {
-    console.log("Getting available users from:", `${CHAT_API_BASE_URL}/chat/users`)
-    const response = await chatAPI.get("/chat/users")
-    return response.data
+    // This call is now correctly routed through Nginx, and from there to the chat service.
+    // The path should be relative to CHAT_API_BASE_URL.
+    // Frontend calls: http://159.223.240.149/api/chat/users
+    // Nginx proxies to: http://209.38.52.45/users
+    console.log("Getting available users from:", `${CHAT_API_BASE_URL}/users`);
+    const response = await chatAPI.get("/users");
+    return response.data;
   } catch (error) {
-    console.error("Error fetching available users:", error)
-    throw error
+    console.error("Error fetching available users:", error);
+    throw error;
   }
-}
+};
+
+// --- WebSocket Connection ---
 
 export function connectToChat(onMessageReceived) {
-  const token = localStorage.getItem("token")
+  const token = localStorage.getItem("token");
 
   if (!token) {
-    console.error("No token found for WebSocket connection")
-    return null
+    console.error("No token found for WebSocket connection");
+    return null;
   }
 
-  const socket = new SockJS(WS_BASE_URL)
+  // WS_BASE_URL is now http://159.223.240.149/ws, proxied by Nginx
+  const socket = new SockJS(WS_BASE_URL);
   const stompClient = new Client({
     webSocketFactory: () => socket,
     connectHeaders: {
@@ -328,54 +347,216 @@ export function connectToChat(onMessageReceived) {
     },
     debug: (str) => console.log("STOMP Debug:", str),
     onStompError: (frame) => {
-      console.error("STOMP error:", frame)
+      console.error("STOMP error:", frame);
     },
-  })
+  });
 
   stompClient.onConnect = () => {
-    console.log("STOMP connected successfully")
+    console.log("STOMP connected successfully");
 
     // Subscribe to personal message queue
     stompClient.subscribe("/user/queue/messages", (message) => {
       try {
-        const body = JSON.parse(message.body)
-        console.log("Received message via STOMP:", body)
-        onMessageReceived(body)
+        const body = JSON.parse(message.body);
+        console.log("Received message via STOMP:", body);
+        onMessageReceived(body);
       } catch (error) {
-        console.error("Error parsing STOMP message:", error)
+        console.error("Error parsing STOMP message:", error);
       }
-    })
+    });
 
     // Subscribe to status updates
     stompClient.subscribe("/topic/status", (message) => {
       try {
-        const body = JSON.parse(message.body)
-        console.log("Received status update:", body)
+        const body = JSON.parse(message.body);
+        console.log("Received status update:", body);
       } catch (error) {
-        console.error("Error parsing status message:", error)
+        console.error("Error parsing status message:", error);
       }
-    })
-  }
+    });
+  };
 
   stompClient.onWebSocketError = (error) => {
-    console.error("WebSocket connection error:", error)
-  }
+    console.error("WebSocket connection error:", error);
+  };
 
   stompClient.onDisconnect = () => {
-    console.log("STOMP disconnected")
-  }
+    console.log("STOMP disconnected");
+  };
 
-  stompClient.activate()
+  stompClient.activate();
 
-  return stompClient
+  return stompClient;
 }
 
-export {
-  getUserChatRooms,
-  getUnreadMessageCount,
-  //createChatRoom,
-  // other exports
-};
+// Ensure all exported functions are unique and correctly defined.
+// The previous explicit `export { getUserChatRooms, getUnreadMessageCount, ... }`
+// was problematic due to duplicates.
+// Now, each function is exported directly when defined.
+
+
+
+
+
+// import axios from "axios"
+// import SockJS from "sockjs-client"
+// import { Client } from "@stomp/stompjs"
+// import { WS_BASE_URL, CHAT_API_BASE_URL } from "./config"
+// import { API_BASE_URL } from "./config.js"
+
+// const chatAPI = axios.create({
+//   baseURL: CHAT_API_BASE_URL,
+//   timeout: 10000,
+//   headers: {
+//     "Content-Type": "application/json",
+//   },
+// })
+
+// //const CHAT_API_BASE_URL = import.meta.env.VITE_CHAT_API_BASE_URL;
+
+// export const getUserChatRooms = async () => {
+//   const response = await axios.get(`${CHAT_API_BASE_URL}/chat/user-rooms`);
+//   return response.data;
+// };
+
+// // also export other functions
+// export const getUnreadMessageCount = async () => {
+//   const response = await axios.get(`${CHAT_API_BASE_URL}/chat/unread-count`);
+//   return response.data;
+// };
+
+// // Create axios instance for cart
+// const userAPI = axios.create({
+//   baseURL: API_BASE_URL,
+//   timeout: 10000,
+//   headers: {
+//     "Content-Type": "application/json",
+//   },
+// })
+
+// // Add auth interceptor to chatAPI
+// chatAPI.interceptors.request.use((config) => {
+//   const token = localStorage.getItem("token")
+//   if (token) {
+//     config.headers.Authorization = `Bearer ${token}`
+//   }
+//   return config
+// })
+
+// const tokenHeader = () => ({
+//   headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+// })
+
+// export async function getUserChatRooms() {
+//   const response = await chatAPI.get("/api/chat/rooms")
+//   return response.data
+// }
+
+// export async function getUnreadMessageCount(roomId) {
+//   const response = await chatAPI.get(`/api/chat/rooms/${roomId}/unread-count`)
+//   return response.data
+// }
+
+// export async function createChatRoom(receiverUsername) {
+//   const response = await chatAPI.post("/api/chat/rooms/create", { receiverUsername })
+//   return response.data
+// }
+
+// export async function markMessagesAsRead(roomId) {
+//   const response = await chatAPI.post(`/api/chat/rooms/${roomId}/read`, {})
+//   return response.data
+// }
+
+// export async function getChatMessages(roomId) {
+//   const response = await chatAPI.get(`/api/chat/rooms/${roomId}/messages`)
+//   return response.data
+// }
+
+// export async function sendMessage(roomId, content, type = "TEXT") {
+//   const response = await chatAPI.post(`/api/chat/rooms/${roomId}/messages`, { content, type })
+//   return response.data
+// }
+
+// export async function cleanupDuplicateUsers() {
+//   const response = await chatAPI.post("/api/chat/cleanup-duplicates", {})
+//   return response.data
+// }
+
+// export const getAvailableUsersFromMain = async () => {
+//   try {
+//     console.log("Getting available users from:", `${CHAT_API_BASE_URL}/chat/users`)
+//     const response = await chatAPI.get("/chat/users")
+//     return response.data
+//   } catch (error) {
+//     console.error("Error fetching available users:", error)
+//     throw error
+//   }
+// }
+
+// export function connectToChat(onMessageReceived) {
+//   const token = localStorage.getItem("token")
+
+//   if (!token) {
+//     console.error("No token found for WebSocket connection")
+//     return null
+//   }
+
+//   const socket = new SockJS(WS_BASE_URL)
+//   const stompClient = new Client({
+//     webSocketFactory: () => socket,
+//     connectHeaders: {
+//       Authorization: `Bearer ${token}`,
+//     },
+//     debug: (str) => console.log("STOMP Debug:", str),
+//     onStompError: (frame) => {
+//       console.error("STOMP error:", frame)
+//     },
+//   })
+
+//   stompClient.onConnect = () => {
+//     console.log("STOMP connected successfully")
+
+//     // Subscribe to personal message queue
+//     stompClient.subscribe("/user/queue/messages", (message) => {
+//       try {
+//         const body = JSON.parse(message.body)
+//         console.log("Received message via STOMP:", body)
+//         onMessageReceived(body)
+//       } catch (error) {
+//         console.error("Error parsing STOMP message:", error)
+//       }
+//     })
+
+//     // Subscribe to status updates
+//     stompClient.subscribe("/topic/status", (message) => {
+//       try {
+//         const body = JSON.parse(message.body)
+//         console.log("Received status update:", body)
+//       } catch (error) {
+//         console.error("Error parsing status message:", error)
+//       }
+//     })
+//   }
+
+//   stompClient.onWebSocketError = (error) => {
+//     console.error("WebSocket connection error:", error)
+//   }
+
+//   stompClient.onDisconnect = () => {
+//     console.log("STOMP disconnected")
+//   }
+
+//   stompClient.activate()
+
+//   return stompClient
+// }
+
+// export {
+//   getUserChatRooms,
+//   getUnreadMessageCount,
+//   //createChatRoom,
+//   // other exports
+// };
 
 
 
