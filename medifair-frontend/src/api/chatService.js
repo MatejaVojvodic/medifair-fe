@@ -231,6 +231,19 @@ const chatAPI = axios.create({
   },
 })
 
+const CHAT_API_BASE_URL = import.meta.env.VITE_CHAT_API_BASE_URL;
+
+export const getUserChatRooms = async () => {
+  const response = await axios.get(`${CHAT_API_BASE_URL}/chat/user-rooms`);
+  return response.data;
+};
+
+// also export other functions
+export const getUnreadMessageCount = async () => {
+  const response = await axios.get(`${CHAT_API_BASE_URL}/chat/unread-count`);
+  return response.data;
+};
+
 // Create axios instance for cart
 const userAPI = axios.create({
   baseURL: API_BASE_URL,
@@ -290,8 +303,8 @@ export async function cleanupDuplicateUsers() {
 
 export const getAvailableUsersFromMain = async () => {
   try {
-    console.log("Getting available users from:", `${CHAT_API_BASE_URL}/api/user/for-chat`)
-    const response = await userAPI.get("/user/for-chat")
+    console.log("Getting available users from:", `${CHAT_API_BASE_URL}/chat/users`)
+    const response = await chatAPI.get("/chat/users")
     return response.data
   } catch (error) {
     console.error("Error fetching available users:", error)
@@ -356,6 +369,13 @@ export function connectToChat(onMessageReceived) {
 
   return stompClient
 }
+
+export {
+  getUserChatRooms,
+  getUnreadMessageCount,
+  //createChatRoom,
+  // other exports
+};
 
 
 
