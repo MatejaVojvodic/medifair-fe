@@ -281,7 +281,7 @@ export async function cleanupDuplicateUsers() {
 //   return response.data;
 // };
 
-export const getAvailableUsers = async () => {
+export const getAvailableUsersFromMain = async () => {
   try {
     console.log("Getting available users from:", `${CHAT_API_BASE_URL}/api/chat/users`)
     const response = await chatAPI.get("/api/chat/users")
