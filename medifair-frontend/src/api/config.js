@@ -29,6 +29,10 @@ const isProduction =
     window.location.hostname !== "127.0.0.1" &&
     !window.location.hostname.includes("localhost"))
 
+// export const API_BASE_URL = isProduction
+//   ? "http://159.223.240.149/api" // Your main server
+//   : "http://localhost:8080"
+
 export const API_BASE_URL = isProduction
   ? "http://159.223.240.149/api" // Your main server
   : "http://localhost:8080"

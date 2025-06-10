@@ -231,7 +231,7 @@ const chatAPI = axios.create({
   },
 })
 
-const CHAT_API_BASE_URL = import.meta.env.VITE_CHAT_API_BASE_URL;
+//const CHAT_API_BASE_URL = import.meta.env.VITE_CHAT_API_BASE_URL;
 
 export const getUserChatRooms = async () => {
   const response = await axios.get(`${CHAT_API_BASE_URL}/chat/user-rooms`);
