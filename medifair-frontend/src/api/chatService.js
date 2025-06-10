@@ -247,7 +247,7 @@ export async function createChatRoom(userId) {
   return response.data;
 }
 
-export async function getMessages(roomId) {
+export async function getChatMessages(roomId) {
   const token = localStorage.getItem("token");
   const response = await axios.get(`${API_BASE_URL}/rooms/${roomId}/messages`, {
     headers: { Authorization: `Bearer ${token}` },
