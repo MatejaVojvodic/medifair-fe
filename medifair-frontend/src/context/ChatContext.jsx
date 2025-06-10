@@ -289,6 +289,7 @@
 //   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>
 // }
 
+
 import { createContext, useState, useEffect, useContext, useCallback } from "react"
 import { useAuth } from "./AuthContext"
 import {
@@ -296,8 +297,8 @@ import {
   getUnreadMessageCount,
   createChatRoom as apiCreateChatRoom,
   sendMessage as apiSendMessage,
+  connectToChat, // Add this import
 } from "../api/chatService.js"
-import { getWebSocketUrl } from "../api/chatService.js"
 
 const ChatContext = createContext()
 
@@ -309,6 +310,7 @@ export const ChatProvider = ({ children }) => {
   const [messages, setMessages] = useState({})
   const [unreadCounts, setUnreadCounts] = useState({})
   const [loading, setLoading] = useState(false)
+  const [stompClient, setStompClient] = useState(null)
 
   const handleNewMessage = useCallback(
     (message) => {
@@ -350,42 +352,46 @@ export const ChatProvider = ({ children }) => {
     },
     [username],
   )
+
   useEffect(() => {
-  if (!isLoggedIn) return
-
-  const stompClient = connectToChat(handleNewMessage)
-
-  const socket = new WebSocket(getWebSocketUrl())
-
-  socket.onopen = () => {
-    console.log("WebSocket connected")
-    setConnected(true)
-  }
-
-  socket.onmessage = (event) => {
-    try {
-      const message = JSON.parse(event.data)
-      console.log("Received message via WS:", message)
-      handleNewMessage(message)
-    } catch (error) {
-      console.error("Failed to parse WebSocket message:", error)
+    if (!isLoggedIn) {
+      // Cleanup connection if user logs out
+      if (stompClient) {
+        stompClient.deactivate()
+        setStompClient(null)
+      }
+      setConnected(false)
+      return
     }
-  }
 
-  socket.onclose = () => {
-    console.log("WebSocket disconnected")
-    setConnected(false)
-  }
+    // Connect to WebSocket
+    const client = connectToChat(handleNewMessage)
+    setStompClient(client)
 
-  socket.onerror = (error) => {
-    console.error("WebSocket error:", error)
-  }
+    // Set up connection status handlers
+    client.onConnect = () => {
+      console.log("WebSocket connected")
+      setConnected(true)
+    }
 
-  return () => {
-    socket.close()
-  }
-}, [isLoggedIn, handleNewMessage])
-  
+    client.onDisconnect = () => {
+      console.log("WebSocket disconnected")
+      setConnected(false)
+    }
+
+    client.onWebSocketError = (error) => {
+      console.error("WebSocket error:", error)
+      setConnected(false)
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (client) {
+        client.deactivate()
+      }
+      setConnected(false)
+    }
+  }, [isLoggedIn, handleNewMessage])
 
   // Create a new chat room
   const createChatRoom = useCallback(async (receiverUsername) => {
@@ -414,24 +420,23 @@ export const ChatProvider = ({ children }) => {
   }, [])
 
   const sendMessage = useCallback(
-  (roomId, receiverUsername, content, type = "TEXT") => {
-    console.log("=== Sending Message ===")
-    console.log("Room ID:", roomId)
-    console.log("Receiver:", receiverUsername)
-    console.log("Content:", content)
+    (roomId, receiverUsername, content, type = "TEXT") => {
+      console.log("=== Sending Message ===")
+      console.log("Room ID:", roomId)
+      console.log("Receiver:", receiverUsername)
+      console.log("Content:", content)
 
-    apiSendMessage(roomId, content, type)
-      .then((savedMessage) => {
-        console.log("Message sent via HTTP:", savedMessage)
-        handleNewMessage(savedMessage)
-      })
-      .catch((error) => {
-        console.error("Error sending message via HTTP:", error)
-      })
-  },
-  [handleNewMessage],
-)
-
+      apiSendMessage(roomId, content, type)
+        .then((savedMessage) => {
+          console.log("Message sent via HTTP:", savedMessage)
+          handleNewMessage(savedMessage)
+        })
+        .catch((error) => {
+          console.error("Error sending message via HTTP:", error)
+        })
+    },
+    [handleNewMessage],
+  )
 
   // Refresh chat rooms
   const refreshChatRooms = useCallback(async () => {
@@ -492,3 +497,208 @@ export const useChat = () => {
   }
   return context
 }
+
+
+// import { createContext, useState, useEffect, useContext, useCallback } from "react"
+// import { useAuth } from "./AuthContext"
+// import {
+//   getUserChatRooms,
+//   getUnreadMessageCount,
+//   createChatRoom as apiCreateChatRoom,
+//   sendMessage as apiSendMessage,
+// } from "../api/chatService.js"
+// import { getWebSocketUrl } from "../api/chatService.js"
+
+// const ChatContext = createContext()
+
+// export const ChatProvider = ({ children }) => {
+//   const { isLoggedIn, getToken, username } = useAuth()
+//   const [connected, setConnected] = useState(false)
+//   const [chatRooms, setChatRooms] = useState([])
+//   const [activeRoom, setActiveRoom] = useState(null)
+//   const [messages, setMessages] = useState({})
+//   const [unreadCounts, setUnreadCounts] = useState({})
+//   const [loading, setLoading] = useState(false)
+
+//   const handleNewMessage = useCallback(
+//     (message) => {
+//       console.log("Handling new message:", message)
+//       setMessages((prevMessages) => {
+//         const roomMessages = prevMessages[message.chatRoomId] || []
+//         // Check if message already exists to avoid duplicates
+//         const messageExists = roomMessages.some((msg) => msg.id === message.id)
+//         if (messageExists) {
+//           return prevMessages
+//         }
+//         return {
+//           ...prevMessages,
+//           [message.chatRoomId]: [...roomMessages, message],
+//         }
+//       })
+
+//       // Update unread counts if the message is not from the current user
+//       if (username && message.senderUsername !== username) {
+//         setUnreadCounts((prev) => ({
+//           ...prev,
+//           [message.chatRoomId]: (prev[message.chatRoomId] || 0) + 1,
+//         }))
+//       }
+
+//       // Update chat room last message
+//       setChatRooms((prevRooms) => {
+//         return prevRooms.map((room) => {
+//           if (room.id === message.chatRoomId) {
+//             return {
+//               ...room,
+//               lastMessage: message.content,
+//               lastMessageTime: message.timestamp,
+//             }
+//           }
+//           return room
+//         })
+//       })
+//     },
+//     [username],
+//   )
+//   useEffect(() => {
+//   if (!isLoggedIn) return
+
+//   const stompClient = connectToChat(handleNewMessage)
+
+//   const socket = new WebSocket(getWebSocketUrl())
+
+//   socket.onopen = () => {
+//     console.log("WebSocket connected")
+//     setConnected(true)
+//   }
+
+//   socket.onmessage = (event) => {
+//     try {
+//       const message = JSON.parse(event.data)
+//       console.log("Received message via WS:", message)
+//       handleNewMessage(message)
+//     } catch (error) {
+//       console.error("Failed to parse WebSocket message:", error)
+//     }
+//   }
+
+//   socket.onclose = () => {
+//     console.log("WebSocket disconnected")
+//     setConnected(false)
+//   }
+
+//   socket.onerror = (error) => {
+//     console.error("WebSocket error:", error)
+//   }
+
+//   return () => {
+//     socket.close()
+//   }
+// }, [isLoggedIn, handleNewMessage])
+  
+
+//   // Create a new chat room
+//   const createChatRoom = useCallback(async (receiverUsername) => {
+//     try {
+//       setLoading(true)
+//       console.log("Creating chat room with:", receiverUsername)
+//       const newRoom = await apiCreateChatRoom(receiverUsername)
+//       console.log("Chat room created successfully:", newRoom)
+
+//       // Add the new room to the list if it's not already there
+//       setChatRooms((prevRooms) => {
+//         const exists = prevRooms.find((room) => room.id === newRoom.id)
+//         if (exists) {
+//           return prevRooms
+//         }
+//         return [...prevRooms, newRoom]
+//       })
+
+//       return newRoom
+//     } catch (error) {
+//       console.error("Error creating chat room:", error)
+//       throw error
+//     } finally {
+//       setLoading(false)
+//     }
+//   }, [])
+
+//   const sendMessage = useCallback(
+//   (roomId, receiverUsername, content, type = "TEXT") => {
+//     console.log("=== Sending Message ===")
+//     console.log("Room ID:", roomId)
+//     console.log("Receiver:", receiverUsername)
+//     console.log("Content:", content)
+
+//     apiSendMessage(roomId, content, type)
+//       .then((savedMessage) => {
+//         console.log("Message sent via HTTP:", savedMessage)
+//         handleNewMessage(savedMessage)
+//       })
+//       .catch((error) => {
+//         console.error("Error sending message via HTTP:", error)
+//       })
+//   },
+//   [handleNewMessage],
+// )
+
+
+//   // Refresh chat rooms
+//   const refreshChatRooms = useCallback(async () => {
+//     if (!isLoggedIn) return
+
+//     try {
+//       setLoading(true)
+//       const rooms = await getUserChatRooms()
+//       console.log("Refreshed chat rooms:", rooms)
+//       setChatRooms(rooms)
+
+//       // Get unread counts for each room
+//       const counts = {}
+//       for (const room of rooms) {
+//         try {
+//           const count = await getUnreadMessageCount(room.id)
+//           counts[room.id] = count
+//         } catch (error) {
+//           console.error(`Error getting unread count for room ${room.id}:`, error)
+//         }
+//       }
+//       setUnreadCounts(counts)
+//     } catch (error) {
+//       console.error("Error refreshing chat rooms:", error)
+//     } finally {
+//       setLoading(false)
+//     }
+//   }, [isLoggedIn])
+
+//   // Get total unread message count
+//   const getTotalUnreadCount = useCallback(() => {
+//     return Object.values(unreadCounts).reduce((total, count) => total + count, 0)
+//   }, [unreadCounts])
+
+//   const value = {
+//     connected,
+//     chatRooms,
+//     activeRoom,
+//     setActiveRoom,
+//     messages,
+//     setMessages,
+//     unreadCounts,
+//     setUnreadCounts,
+//     loading,
+//     sendMessage,
+//     refreshChatRooms,
+//     getTotalUnreadCount,
+//     createChatRoom,
+//   }
+
+//   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>
+// }
+
+// export const useChat = () => {
+//   const context = useContext(ChatContext)
+//   if (!context) {
+//     throw new Error("useChat must be used within a ChatProvider")
+//   }
+//   return context
+// }

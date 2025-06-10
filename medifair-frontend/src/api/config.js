@@ -38,8 +38,8 @@ export const CHAT_API_BASE_URL = isProduction
   : "http://localhost:8081"
 
 export const WS_BASE_URL = isProduction
-  ? "ws://209.38.52.45/ws" // WebSocket to chat service
-  : "ws://localhost:8081/ws"
+  ? "http://209.38.52.45/ws" // WebSocket to chat service (use http, not ws)
+  : "http://localhost:8081/ws"
 
 // Log the environment and URLs for debugging
 console.log("Environment:", isProduction ? "production" : "development")
