@@ -298,8 +298,9 @@
 #   only:
 #     - main
 
-image: node:18
+# .gitlab-ci.yml
 
+image: node:20 # Changed from node:18 to node:20 to address EBADENGINE warning
 stages:
   - build
   - test
@@ -307,11 +308,9 @@ stages:
   - security_checks
   - docker
   - deploy
-
 cache:
   paths:
     - medifair-frontend/node_modules/
-
 variables:
   DOCKER_HOST: tcp://docker:2375
   DOCKER_TLS_CERTDIR: ""
@@ -415,20 +414,21 @@ docker:
           server_name _;
           root /usr/share/nginx/html;
           index index.html;
-          
+
           # Enable gzip compression
           gzip on;
           gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
-          
+
           # Handle React Router
           location / {
               try_files $uri $uri/ /index.html;
               add_header Cache-Control "no-cache, no-store, must-revalidate";
               add_header Pragma "no-cache";
               add_header Expires "0";
+              # No CORS headers needed here as it's serving the main app from the same origin
           }
-          
-          # Proxy auth requests to backend (FIXED)
+
+          # Proxy auth requests to backend
           location /api/auth/ {
               proxy_pass http://167.99.17.26/auth/;
               proxy_set_header Host $host;
@@ -438,16 +438,17 @@ docker:
               proxy_connect_timeout 30s;
               proxy_send_timeout 30s;
               proxy_read_timeout 30s;
-          
+
               # Add CORS headers
-              add_header 'Access-Control-Allow-Origin' '*' always;
+              add_header 'Access-Control-Allow-Origin' 'http://159.223.240.149' always; # Specific origin
               add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
               add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
               add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range' always;
-          
+              add_header 'Access-Control-Allow-Credentials' 'true' always; # Required if frontend sends cookies/auth headers
+
               # Handle preflight requests
               if ($request_method = 'OPTIONS') {
-                  add_header 'Access-Control-Allow-Origin' '*';
+                  add_header 'Access-Control-Allow-Origin' 'http://159.223.240.149';
                   add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
                   add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization';
                   add_header 'Access-Control-Max-Age' 1728000;
@@ -456,10 +457,10 @@ docker:
                   return 204;
               }
           }
-      
-          # Proxy chat requests to chat service (FIXED)
+
+          # Proxy chat requests to chat service
           location /api/chat/ {
-              proxy_pass http://209.38.52.45/;
+              proxy_pass http://209.38.52.45/; # Trailing slash means /api/chat/something -> http://209.38.52.45/something
               proxy_set_header Host $host;
               proxy_set_header X-Real-IP $remote_addr;
               proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -467,45 +468,26 @@ docker:
               proxy_connect_timeout 30s;
               proxy_send_timeout 30s;
               proxy_read_timeout 30s;
-          
+
               # Add CORS headers
-              add_header 'Access-Control-Allow-Origin' '*' always;
+              add_header 'Access-Control-Allow-Origin' 'http://159.223.240.149' always; # Specific origin
               add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
               add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
+              add_header 'Access-Control-Allow-Credentials' 'true' always;
+
+              # Handle preflight requests
+              if ($request_method = 'OPTIONS') {
+                  add_header 'Access-Control-Allow-Origin' 'http://159.223.240.149';
+                  add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+                  add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization';
+                  add_header 'Access-Control-Max-Age' 1728000;
+                  add_header 'Content-Type' 'text/plain; charset=utf-8';
+                  add_header 'Content-Length' 0;
+                  return 204;
+              }
           }
 
-          location /ws/ {
-            proxy_pass http://209.38.52.45/ws/;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-            proxy_connect_timeout 7d;
-            proxy_send_timeout 7d;
-            proxy_read_timeout 7d;
-
-            # CORS headers for initial SockJS/XHR requests
-            add_header 'Access-Control-Allow-Origin' 'http://159.223.240.149' always; # Specific frontend origin
-            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
-            add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
-            add_header 'Access-Control-Allow-Credentials' 'true' always; # Important if credentials are sent
-
-            # Handle preflight OPTIONS requests for /ws/
-            if ($request_method = 'OPTIONS') {
-                add_header 'Access-Control-Allow-Origin' 'http://159.223.240.149';
-                add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
-                add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization';
-                add_header 'Access-Control-Max-Age' 1728000;
-                add_header 'Content-Type' 'text/plain; charset=utf-8';
-                add_header 'Content-Length' 0;
-                return 204; # No Content for preflight success
-            }
-        }
-      
-          # Proxy ALL other API requests to backend (FIXED)
+          # Proxy ALL other API requests to backend
           location /api/ {
               proxy_pass http://167.99.17.26/;
               proxy_set_header Host $host;
@@ -515,16 +497,17 @@ docker:
               proxy_connect_timeout 30s;
               proxy_send_timeout 30s;
               proxy_read_timeout 30s;
-          
+
               # Add CORS headers
-              add_header 'Access-Control-Allow-Origin' '*' always;
+              add_header 'Access-Control-Allow-Origin' 'http://159.223.240.149' always; # Specific origin
               add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
               add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
               add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range' always;
-          
+              add_header 'Access-Control-Allow-Credentials' 'true' always;
+
               # Handle preflight requests
               if ($request_method = 'OPTIONS') {
-                  add_header 'Access-Control-Allow-Origin' '*';
+                  add_header 'Access-Control-Allow-Origin' 'http://159.223.240.149';
                   add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
                   add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization';
                   add_header 'Access-Control-Max-Age' 1728000;
@@ -533,22 +516,41 @@ docker:
                   return 204;
               }
           }
-      
-          # WebSocket support for chat
+
+          # WebSocket support for chat (CORRECTED, NO DUPLICATE)
           location /ws/ {
+              # This proxies http://159.223.240.149/ws to http://209.38.52.45/ws
               proxy_pass http://209.38.52.45/ws/;
               proxy_http_version 1.1;
               proxy_set_header Upgrade $http_upgrade;
-              proxy_set_header Connection "upgrade";
-              proxy_set_header Host $host;
+              proxy_set_header Connection "upgrade"; # Important for WebSocket upgrade
+              proxy_set_header Host $host; # Use $host to send the original host header
               proxy_set_header X-Real-IP $remote_addr;
               proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
               proxy_set_header X-Forwarded-Proto $scheme;
               proxy_connect_timeout 7d;
               proxy_send_timeout 7d;
               proxy_read_timeout 7d;
+
+              # CORS headers for initial SockJS/XHR requests (e.g., /ws/info?t=...)
+              # This is crucial for the pre-handshake requests that SockJS makes
+              add_header 'Access-Control-Allow-Origin' 'http://159.223.240.149' always; # Specific frontend origin
+              add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+              add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
+              add_header 'Access-Control-Allow-Credentials' 'true' always; # Required if client sends auth token
+
+              # Handle preflight OPTIONS requests for /ws/ path
+              if ($request_method = 'OPTIONS') {
+                  add_header 'Access-Control-Allow-Origin' 'http://159.223.240.149';
+                  add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+                  add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization';
+                  add_header 'Access-Control-Max-Age' 1728000; # Cache preflight for 20 days
+                  add_header 'Content-Type' 'text/plain; charset=utf-8';
+                  add_header 'Content-Length' 0;
+                  return 204; # No Content for successful preflight
+              }
           }
-      
+
           # Health check endpoint
           location /health {
               access_log off;
