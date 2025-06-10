@@ -293,6 +293,12 @@ export const getAvailableUsersFromMain = async () => {
   }
 };
 
+export const getWebSocketUrl = () => {
+  const protocol = window.location.protocol === "http:" ? "wss" : "ws"
+  const host = window.location.hostname
+  return `${protocol}://${host}/ws`  // assuming your backend endpoint is at /ws
+}
+
 export async function sendMessage(roomId, content) {
   const token = localStorage.getItem("token");
   const response = await axios.post(`${API_BASE_URL}/rooms/${roomId}/messages`, {
