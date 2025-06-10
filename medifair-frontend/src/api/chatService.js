@@ -283,6 +283,16 @@ export async function cleanupDuplicateUsers() {
   }
 }
 
+export const getAvailableUsersFromMain = async () => {
+  try {
+    const response = await axios.get("/api/chat/users", { withCredentials: true });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching available users:", error);
+    throw error;
+  }
+};
+
 export async function sendMessage(roomId, content) {
   const token = localStorage.getItem("token");
   const response = await axios.post(`${API_BASE_URL}/rooms/${roomId}/messages`, {
