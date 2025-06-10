@@ -355,6 +355,11 @@ export async function cleanupDuplicateUsers() {
   }
 }
 
+export function getWebSocketUrl() {
+  const token = localStorage.getItem("token");
+  return `/ws/chat?token=${token}`;
+}
+
 // Export convenience getters
 export const chatService = {
   connectToChat,
