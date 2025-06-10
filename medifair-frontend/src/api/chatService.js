@@ -219,7 +219,7 @@
 import axios from "axios";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
-import { API_BASE_URL, WS_BASE_URL } from "../config/env";
+import { API_BASE_URL, WS_BASE_URL } from "./config";
 
 
 const tokenHeader = () => ({
