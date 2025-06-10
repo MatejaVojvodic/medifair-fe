@@ -34,7 +34,7 @@ export const API_BASE_URL = isProduction
   : "http://localhost:8080"
 
 export const CHAT_API_BASE_URL = isProduction
-  ? "http://209.38.52.45" // Chat server
+  ? "http://209.38.52.45/api" // Chat server
   : "http://localhost:8081"
 
 export const WS_BASE_URL = isProduction
