@@ -460,14 +460,20 @@ docker:
 
           # Proxy chat requests to chat service
           location /api/chat/ {
-              proxy_pass http://209.38.52.45; # Trailing slash means /api/chat/something -> http://209.38.52.45/something
-              proxy_set_header Host $host;
-              proxy_set_header X-Real-IP $remote_addr;
-              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-              proxy_set_header X-Forwarded-Proto $scheme;
-              proxy_connect_timeout 30s;
-              proxy_send_timeout 30s;
-              proxy_read_timeout 30s;
+            proxy_pass http://209.38.52.45; # No trailing slash, good!
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_connect_timeout 30s;
+            proxy_send_timeout 30s;
+            proxy_read_timeout 30s;
+
+            # Add these for testing to disable buffering
+            proxy_buffering off;
+            proxy_request_buffering off; # Sometimes useful for WebSocket-like issues or large uploads
+            # proxy_no_cache 1; # If you suspect Nginx caching is causing issues (less likely here)
+            # proxy_no_store 1; # If you suspect Nginx caching is causing issues
 
               # Add CORS headers
               add_header 'Access-Control-Allow-Origin' 'http://159.223.240.149' always; # Specific origin
