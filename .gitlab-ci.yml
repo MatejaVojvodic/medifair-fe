@@ -460,7 +460,7 @@ docker:
 
           # Proxy chat requests to chat service
           location /api/chat/ {
-              proxy_pass http://209.38.52.45/; # Trailing slash means /api/chat/something -> http://209.38.52.45/something
+              proxy_pass http://209.38.52.45; # Trailing slash means /api/chat/something -> http://209.38.52.45/something
               proxy_set_header Host $host;
               proxy_set_header X-Real-IP $remote_addr;
               proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
