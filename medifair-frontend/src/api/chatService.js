@@ -319,8 +319,8 @@ export const getAvailableUsersFromMain = async () => {
     // The path should be relative to CHAT_API_BASE_URL.
     // Frontend calls: http://159.223.240.149/api/chat/users
     // Nginx proxies to: http://209.38.52.45/users
-    console.log("Getting available users from:", `${API_BASE_URL}/for-chat`);
-    const response = await userAPI.get("/for-chat");
+    console.log("Getting available users from:", `${API_BASE_URL}/users/for-chat`);
+    const response = await userAPI.get("/users/for-chat");
     return response.data;
   } catch (error) {
     console.error("Error fetching available users:", error);
